@@ -71,10 +71,10 @@ gnome_dvb_daemon_SOURCES = \
 
 vala_pkgs = \
 	--pkg gio-2.0 \
-	--pkg gstreamer-0.10 \
-	--pkg gee-1.0 \
+	--pkg gstreamer-1.0 \
+	--pkg gee-0.8 \
 	--pkg sqlite3 \
-	--pkg gst-rtsp-server-0.10 \
+	--pkg gstreamer-rtsp-server-1.0 \
 	--pkg gudev-1.0 \
 	$(NULL)
     
@@ -93,7 +93,7 @@ gnome_dvb_daemon_CPPFLAGS = \
 	-include $(CONFIG_HEADER) \
 	$(NULL)
 
-VALAFLAGS = --target-glib=2.32 --vapidir=$(top_srcdir)/vapi $(own_pkgs) $(vala_pkgs) --basedir $(top_srcdir)
+AM_VALAFLAGS = --target-glib=2.32 --vapidir=$(top_srcdir)/vapi $(own_pkgs) $(vala_pkgs) --basedir $(top_srcdir)
 
 gnome_dvb_daemon_LDFLAGS = \
 	-Wl,--export-dynamic

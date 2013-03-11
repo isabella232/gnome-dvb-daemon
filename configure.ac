@@ -60,22 +60,22 @@ dnl ******************
 dnl * Check for libs
 dnl ******************
 GLIB_REQUIRED=2.32.0
-GST_REQUIRED=0.10.29
-GEE_REQUIRED=0.5.0
+GST_REQUIRED=1.0
+GEE_REQUIRED=0.8.0
 SQLITE_REQUIRED=3.4
-GST_RTSP_SERVER_REQUIRED=0.10.7
+GST_RTSP_SERVER_REQUIRED=0.11.90
 
-PKG_CHECK_MODULES(GST, gstreamer-0.10 >= $GST_REQUIRED
-                       gstreamer-rtsp-0.10 >= $GST_REQUIRED)
+PKG_CHECK_MODULES(GST, gstreamer-1.0 >= $GST_REQUIRED
+                       gstreamer-rtsp-1.0 >= $GST_REQUIRED)
 AC_SUBST(GST_CFLAGS)
 AC_SUBST(GST_LIBS)
 
 PKG_CHECK_MODULES(GNOME_DVB_DAEMON, glib-2.0 >= $GLIB_REQUIRED
                             gio-2.0 >= $GLIB_REQUIRED
                             gobject-2.0 >= $GLIB_REQUIRED
-                            gee-1.0 >= $GEE_REQUIRED
+                            gee-0.8 >= $GEE_REQUIRED
                             sqlite3 >= $SQLITE_REQUIRED
-                            gst-rtsp-server-0.10 >= $GST_RTSP_SERVER_REQUIRED)
+                            gstreamer-rtsp-server-1.0 >= $GST_RTSP_SERVER_REQUIRED)
 AC_SUBST(GNOME_DVB_DAEMON_CFLAGS)
 AC_SUBST(GNOME_DVB_DAEMON_LIBS)
 
@@ -88,7 +88,7 @@ AC_SUBST(GUDEV_CFLAGS)
 AC_SUBST(GUDEV_LIBS)
 
 AG_GST_CHECK_GST_INSPECT
-AG_GST_CHECK_MODULE_BAD([mpegtsparse])
+AG_GST_CHECK_MODULE_BAD([tsparse])
 AG_GST_CHECK_MODULE_BAD([dvbbasebin])
 AG_GST_CHECK_MODULE_BAD([dvbsrc])
 AG_GST_CHECK_MODULE_GOOD([rtpmp2tpay])
