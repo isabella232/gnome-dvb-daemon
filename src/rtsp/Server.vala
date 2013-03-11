@@ -76,7 +76,7 @@ namespace DVB.RTSPServer {
     }
 
     private class StopChannelHelper {
-        private Gst.RTSPUrl url;
+        private Gst.RTSP.Url url;
 
         public StopChannelHelper (string url_str) {
             Gst.RTSPUrl.parse (url_str, out this.url);

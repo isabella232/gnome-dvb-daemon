@@ -30,8 +30,8 @@ namespace DVB {
             this.set_shared (true);
         }
 
-        public override Gst.RTSPMedia? @construct (Gst.RTSPUrl url) {
-            uint sidnr = 0;
+        public override Gst.RTSPMedia? @construct (Gst.RTSP.Url url) {
+		uint sidnr = 0;
           	uint grpnr = 0;
 
           	string[] path_elements = url.abspath.split ("/");
@@ -90,7 +90,7 @@ namespace DVB {
             return media;
         }
 
-        public override string gen_key (Gst.RTSPUrl url) {
+        public override string gen_key (Gst.RTSP.Url url) {
             return url.abspath;
         }
     }
