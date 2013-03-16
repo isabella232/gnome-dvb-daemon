@@ -88,7 +88,7 @@ namespace Main {
 
     private static bool check_feature_version (string name, uint major,
             uint minor, uint micro) {
-        Gst.Registry reg = Gst.Registry.get_default ();
+        Gst.Registry reg = Gst.Registry.get ();
         Gst.PluginFeature feature = reg.lookup_feature (name);
         bool ret;
         if (feature == null)

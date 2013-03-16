@@ -387,7 +387,7 @@ namespace DVB {
             dvbelement.set("adapter", adapter);
             dvbelement.set("frontend", frontend);
 
-            Gst.Element pipeline = new Gst.Pipeline(null);
+            Gst.Element pipeline = new Gst.Pipeline("get-adapter-info");
             ((Gst.Bin)pipeline).add(dvbelement);
             pipeline.set_state(Gst.State.READY);
 

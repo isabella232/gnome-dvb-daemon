@@ -25,7 +25,7 @@ namespace DVB {
 
         private static Gst.RTSPMediaFactory factory_instance = new MediaFactory ();
 
-        public override Gst.RTSPMediaFactory? find_media (Gst.RTSP.Url url) {
+        public override Gst.RTSPMediaFactory? find_factory (Gst.RTSP.Url url) {
             return factory_instance;
         }
 

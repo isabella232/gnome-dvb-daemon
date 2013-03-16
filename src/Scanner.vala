@@ -526,13 +526,13 @@ namespace DVB {
             pid_set.add (17);
 
             Value programs = structure.get_value ("programs");
-            uint size = programs.list_get_size ();
+            uint size = Gst.ValueList.get_size (programs);
             Value val;
             weak Gst.Structure program;
             // Iterate over programs
             for (uint i=0; i<size; i++) {
-                val = programs.list_get_value (i);
-                program = val.get_structure ();
+                val = Gst.ValueList.get_value (programs, i);
+                program = Gst.Value.get_structure (val);
 
                 uint sid;
                 program.get_uint ("program-number", out sid);
@@ -568,14 +568,14 @@ namespace DVB {
             log.debug("Received SDT (0x%x)", tsid);
 
             Value services = structure.get_value ("services");
-            uint size = services.list_get_size ();
+            uint size = Gst.ValueList.get_size (services);
 
             Value val;
             weak Gst.Structure service;
             // Iterate over services
             for (uint i=0; i<size; i++) {
-                val = services.list_get_value (i);
-                service = val.get_structure ();
+                val = Gst.ValueList.get_value (services, i);
+                service = Gst.Value.get_structure (val);
 
                 // Returns "service-%d"
                 string name = service.get_name ();
@@ -637,21 +637,21 @@ namespace DVB {
             log.debug ("Network name '%s'", name);
 
             Value transports = structure.get_value ("transports");
-            uint size = transports.list_get_size ();
+            uint size = Gst.ValueList.get_size (transports);
             Value val;
             weak Gst.Structure transport;
             // Iterate over transports
             for (uint i=0; i<size; i++) {
-                val = transports.list_get_value (i);
-                transport = val.get_structure ();
+                val = Gst.ValueList.get_value (transports, i);
+                transport = Gst.Value.get_structure (val);
 
                 uint tsid;
                 transport.get_uint ("transport-stream-id", out tsid);
 
                 if (transport.has_field ("delivery")) {
                     Value delivery_val = transport.get_value ("delivery");
-                    weak Gst.Structure delivery =
-                        delivery_val.get_structure ();
+                    weak Gst.Structure delivery = Gst.Value.get_structure (
+                        delivery_val);
 
                     log.debug ("Received TS 0x%x", tsid);
 
@@ -663,14 +663,14 @@ namespace DVB {
 
                 if (transport.has_field ("channels")) {
                     Value channels = transport.get_value ("channels");
-                    uint channels_size = channels.list_get_size ();
+                    uint channels_size = Gst.ValueList.get_size (channels);
 
                     Value channel_val;
                     weak Gst.Structure channel_struct;
                     // Iterate over channels
                     for (int j=0; j<channels_size; j++) {
-                        channel_val = channels.list_get_value (j);
-                        channel_struct = channel_val.get_structure ();
+                        channel_val = Gst.ValueList.get_value (channels, j);
+                        channel_struct = Gst.Value.get_structure (channel_val);
 
                         uint sid;
                         channel_struct.get_uint ("service-id", out sid);
@@ -710,14 +710,14 @@ namespace DVB {
             Channel dvb_channel = this.channels.get_channel (program_number);
 
             Value streams = structure.get_value ("streams");
-            uint size = streams.list_get_size ();
+            uint size = Gst.ValueList.get_size (streams);
 
             Value stream_val;
             weak Gst.Structure stream;
             // Iterate over streams
             for (int i=0; i<size; i++) {
-                stream_val = streams.list_get_value (i);
-                stream = stream_val.get_structure ();
+                stream_val = Gst.ValueList.get_value (streams, i);
+                stream = Gst.Value.get_structure (stream_val);
 
                 uint pid;
                 stream.get_uint ("pid", out pid);

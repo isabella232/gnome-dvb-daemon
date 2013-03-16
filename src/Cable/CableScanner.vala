@@ -59,11 +59,11 @@ namespace DVB {
 
         private inline void add_scanning_data (uint frequency, string modulation,
                 uint symbol_rate, string code_rate) {
-            var tuning_params = new Gst.Structure ("tuning_params",
-            "frequency", typeof(uint), frequency,
-            "symbol-rate", typeof(uint), symbol_rate,
-            "inner-fec", typeof(string), code_rate,
-            "modulation", typeof(string), modulation);
+            var tuning_params = new Gst.Structure.empty ("tuning_params");
+            tuning_params.set_value ("frequency", frequency);
+            tuning_params.set_value ("symbol-rate", symbol_rate);
+            tuning_params.set_value ("inner-fec", code_rate);
+            tuning_params.set_value ("modulation", modulation);
 
             base.add_structure_to_scan (tuning_params);
         }
@@ -94,7 +94,7 @@ namespace DVB {
             };
 
             foreach (string key in keys) {
-                this.set_uint_property (dvbsrc, this.current_tuning_params, key);
+                set_uint_property (dvbsrc, this.current_tuning_params, key);
             }
 
             dvbsrc.set ("modulation",

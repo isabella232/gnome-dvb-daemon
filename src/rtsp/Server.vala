@@ -79,7 +79,7 @@ namespace DVB.RTSPServer {
         private Gst.RTSP.Url url;
 
         public StopChannelHelper (string url_str) {
-            Gst.RTSPUrl.parse (url_str, out this.url);
+            Gst.RTSP.url_parse (url_str, out this.url);
         }
 
         public Gst.RTSPFilterResult session_filter_func (Gst.RTSPSessionPool pool,

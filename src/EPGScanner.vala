@@ -268,10 +268,10 @@ namespace DVB {
         public void on_eit_structure (Gst.Structure structure) {
             Value events = structure.get_value ("events");
 
-            if (!(events.holds (Value.list_get_type ())))
+            if (!events.holds (typeof(Gst.ValueList)))
                 return;
 
-            uint size = events.list_get_size ();
+            uint size = Gst.ValueList.get_size (events);
             Value val;
             weak Gst.Structure event;
             // Iterate over events
@@ -284,8 +284,8 @@ namespace DVB {
                 HashSet<Event> list = this.channel_events.get (sid);
 
                 for (uint i=0; i<size; i++) {
-                    val = events.list_get_value (i);
-                    event = val.get_structure ();
+                    val = Gst.ValueList.get_value (events, i);
+                    event = Gst.Value.get_structure (val);
 
                     var event_class = new Event ();
                     event_class.id = get_uint_val (event, "event-id");

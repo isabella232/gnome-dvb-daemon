@@ -85,7 +85,7 @@ namespace DVB {
             // Set pipeline
             media.pipeline = player.get_pipeline ();
 
-            this.collect_streams (url, media);
+            media.collect_streams ();
 
             return media;
         }
@@ -110,7 +110,7 @@ namespace DVB {
         }
 
         public override bool unprepare () {
-            this.remove_elements ();
+            base.unprepare ();
             ChannelFactory channels_factory = this.group.channel_factory;
             channels_factory.stop_channel (this.channel, this.payloader);
             return true;

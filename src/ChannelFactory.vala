@@ -228,7 +228,7 @@ namespace DVB {
             Element queue = ElementFactory.make ("queue", null);
             queue.set ("max-size-buffers", 0);
 
-            Gst.Element bin = new Gst.Bin (null);
+            Gst.Element bin = new Gst.Bin ("sink_bin");
             ((Gst.Bin)bin).add_many (queue, sink_element);
             if (!queue.link (sink_element)) {
                 log.error ("Could not link elements %s and %s", queue.get_name (),
@@ -266,7 +266,7 @@ namespace DVB {
                 ChannelElements? celems = this.elements_map.get (sid);
                 if (celems != null) {
                     foreach (Gst.Element sink_bin in celems.sinks) {
-                        Gst.Iterator<Gst.Element> it = ((Gst.Bin)sink_bin).iterate_elements ();
+                        Gst.Iterator it = ((Gst.Bin)sink_bin).iterate_elements ();
                         Gst.Element element = it.find_custom (find_element, sink);
                         if (element != null) {
                             result = sink_bin;

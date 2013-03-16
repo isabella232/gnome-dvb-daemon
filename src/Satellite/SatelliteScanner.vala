@@ -83,10 +83,10 @@ namespace DVB {
 
         private inline void add_scanning_data (uint frequency,
                 string polarization, uint symbol_rate) {
-            var tuning_params = new Gst.Structure ("tuning_params",
-            "frequency", typeof(uint), frequency,
-            "symbol-rate", typeof(uint), symbol_rate,
-            "polarization", typeof(string), polarization);
+            var tuning_params = new Gst.Structure.empty ("tuning_params");
+            tuning_params.set_value ("frequency", frequency);
+            tuning_params.set_value ("symbol-rate", symbol_rate);
+            tuning_params.set_value ("polarization", polarization);
 
             base.add_structure_to_scan (tuning_params);
         }
@@ -123,7 +123,7 @@ namespace DVB {
             string[] uint_keys = new string[] {"frequency", "symbol-rate"};
 
             foreach (string key in uint_keys) {
-                base.set_uint_property (dvbsrc, base.current_tuning_params, key);
+                set_uint_property (dvbsrc, base.current_tuning_params, key);
             }
 
             string polarity =

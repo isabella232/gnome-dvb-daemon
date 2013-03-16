@@ -88,15 +88,15 @@ namespace DVB {
                 uint bandwidth, string transmode, string code_rate_hp,
                 string code_rate_lp, string constellation, uint guard) {
 
-            Gst.Structure tuning_params = new Gst.Structure ("tuning_params",
-                "frequency", typeof(uint), frequency,
-                "hierarchy", typeof(uint), hierarchy,
-                "bandwidth", typeof(uint), bandwidth,
-                "transmission-mode", typeof(string), transmode,
-                "code-rate-hp", typeof(string), code_rate_hp,
-                "code-rate-lp", typeof(string), code_rate_lp,
-                "constellation", typeof(string), constellation,
-                "guard-interval", typeof(uint), guard);
+            Gst.Structure tuning_params = new Gst.Structure.empty ("tuning_params");
+            tuning_params.set_value ("frequency", frequency);
+            tuning_params.set_value ("hierarchy", hierarchy);
+            tuning_params.set_value ("bandwidth", bandwidth);
+            tuning_params.set_value ("ransmission-mode", transmode);
+            tuning_params.set_value ("code-rate-hp", code_rate_hp);
+            tuning_params.set_value ("code-rate-lp", code_rate_lp);
+            tuning_params.set_value ("constellation", constellation);
+            tuning_params.set_value ("guard-interval", guard);
 
             base.add_structure_to_scan (tuning_params);
         }
@@ -147,7 +147,7 @@ namespace DVB {
 
             Gst.Element dvbsrc = ((Gst.Bin)base.pipeline).get_by_name ("dvbsrc");
 
-            base.set_uint_property (dvbsrc, base.current_tuning_params, "frequency");
+            set_uint_property (dvbsrc, base.current_tuning_params, "frequency");
 
             uint bandwidth;
             this.current_tuning_params.get_uint ("bandwidth", out bandwidth);
