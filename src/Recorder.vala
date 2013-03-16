@@ -28,7 +28,7 @@ namespace DVB {
      * This class is responsible for managing upcoming recordings and
      * already recorded items for a single group of devices
      */
-    public class Recorder : GLib.Object, IDBusRecorder, Iterable<Timer> {
+    public class Recorder : GLib.Object, IDBusRecorder, Traversable<Timer>, Iterable<Timer> {
 
         private static Logger log = LogManager.getLogManager().getDefaultLogger();
 
@@ -65,10 +65,14 @@ namespace DVB {
             base (DeviceGroup: dev);
         }
 
-	public Type element_type { get { return typeof (Timer); } }
+        public Type element_type { get { return typeof (Timer); } }
 
         public Gee.Iterator<Timer> iterator () {
             return this.timers.values.iterator ();
+        }
+
+        public bool foreach (ForallFunc<Timer> f) {
+            return this.timers.values.iterator().foreach(f);
         }
 
         /**

@@ -525,9 +525,9 @@ namespace DVB {
             pid_set.add (16);
             pid_set.add (17);
 
-            Gst.Value programs = structure.get_value ("programs");
+            Value programs = structure.get_value ("programs");
             uint size = programs.list_get_size ();
-            Gst.Value val;
+            Value val;
             weak Gst.Structure program;
             // Iterate over programs
             for (uint i=0; i<size; i++) {
@@ -567,10 +567,10 @@ namespace DVB {
 
             log.debug("Received SDT (0x%x)", tsid);
 
-            Gst.Value services = structure.get_value ("services");
+            Value services = structure.get_value ("services");
             uint size = services.list_get_size ();
 
-            Gst.Value val;
+            Value val;
             weak Gst.Structure service;
             // Iterate over services
             for (uint i=0; i<size; i++) {
@@ -636,9 +636,9 @@ namespace DVB {
             }
             log.debug ("Network name '%s'", name);
 
-            Gst.Value transports = structure.get_value ("transports");
+            Value transports = structure.get_value ("transports");
             uint size = transports.list_get_size ();
-            Gst.Value val;
+            Value val;
             weak Gst.Structure transport;
             // Iterate over transports
             for (uint i=0; i<size; i++) {
@@ -649,7 +649,7 @@ namespace DVB {
                 transport.get_uint ("transport-stream-id", out tsid);
 
                 if (transport.has_field ("delivery")) {
-                    Gst.Value delivery_val = transport.get_value ("delivery");
+                    Value delivery_val = transport.get_value ("delivery");
                     weak Gst.Structure delivery =
                         delivery_val.get_structure ();
 
@@ -662,10 +662,10 @@ namespace DVB {
                 }
 
                 if (transport.has_field ("channels")) {
-                    Gst.Value channels = transport.get_value ("channels");
+                    Value channels = transport.get_value ("channels");
                     uint channels_size = channels.list_get_size ();
 
-                    Gst.Value channel_val;
+                    Value channel_val;
                     weak Gst.Structure channel_struct;
                     // Iterate over channels
                     for (int j=0; j<channels_size; j++) {
@@ -709,10 +709,10 @@ namespace DVB {
 
             Channel dvb_channel = this.channels.get_channel (program_number);
 
-            Gst.Value streams = structure.get_value ("streams");
+            Value streams = structure.get_value ("streams");
             uint size = streams.list_get_size ();
 
-            Gst.Value stream_val;
+            Value stream_val;
             weak Gst.Structure stream;
             // Iterate over streams
             for (int i=0; i<size; i++) {

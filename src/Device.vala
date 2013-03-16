@@ -98,17 +98,17 @@ namespace DVB {
             return device;
         }
 
-        public static bool equal (Device* dev1, Device* dev2) {
+        public static bool equal (Device dev1, Device dev2) {
             if (dev1 == null || dev2 == null) return false;
 
-            return (dev1->Adapter == dev2->Adapter
-                    && dev2->Frontend == dev2->Frontend);
+            return (dev1.Adapter == dev2.Adapter
+                    && dev2.Frontend == dev2.Frontend);
         }
 
-        public static uint hash (Device *device) {
+        public static uint hash (Device device) {
             if (device == null) return 0;
 
-            return hash_without_device (device->Adapter, device->Frontend);
+            return hash_without_device (device.Adapter, device.Frontend);
         }
 
         public static uint hash_without_device (uint adapter, uint frontend) {

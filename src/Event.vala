@@ -194,14 +194,14 @@ namespace DVB {
          *
          * event1 and event2 must be part of the same transport stream
          */
-        public static bool equal (Event* event1, Event* event2) {
+        public static bool equal (Event event1, Event event2) {
             if (event1 == null || event2 == null) return false;
 
-            return (event1->id == event2->id);
+            return (event1.id == event2.id);
         }
 
-        public static uint hash (Event* event) {
-            return event->id;
+        public static uint hash (Event event) {
+            return event.id;
         }
 
         public class AudioComponent {

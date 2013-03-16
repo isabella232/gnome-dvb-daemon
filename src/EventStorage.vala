@@ -51,7 +51,7 @@ namespace DVB {
         }
     }
 
-    public class EventStorage : GLib.Object, Iterable<EventElement> {
+    public class EventStorage : GLib.Object, Traversable<EventElement>, Iterable<EventElement> {
 
         private Sequence<EventElement> events;
         private Map<uint, unowned SequenceIter<EventElement>> event_id_map;
@@ -96,13 +96,13 @@ namespace DVB {
 
             SequenceIter<EventElement> iter = begin_iter;
             while (iter != end_iter) {
-                EventElement element = this.events.get (iter);
+                EventElement element = iter.get();
                 this.event_id_map.unset (element.id);
 
                 iter = iter.next ();
             }
 
-            this.events.remove_range (begin_iter, end_iter);
+            Sequence.remove_range (begin_iter, end_iter);
 
             _stamp++;
 
@@ -113,7 +113,7 @@ namespace DVB {
             foreach (Event event in events) {
                 SequenceIter<EventElement> iter = this.event_id_map.get (event.id);
                 if (iter != null) {
-                    this.events.remove (iter);
+                    Sequence.remove (iter);
                     this.event_id_map.unset (event.id);
                 }
             }
@@ -124,14 +124,14 @@ namespace DVB {
             assert (index < this.events.get_length ());
 
             SequenceIter<EventElement> iter = this.events.get_iter_at_pos (index);
-            EventElement element = this.events.get (iter);
+            EventElement element = iter.get ();
 
             return element;
         }
 
         public EventElement get_by_id (uint event_id) {
             SequenceIter<EventElement> iter = this.event_id_map.get (event_id);
-            EventElement element = this.events.get (iter);
+            EventElement element = iter.get ();
 
             return element;
         }
@@ -177,6 +177,11 @@ namespace DVB {
             return overlap;
         }
 
+        public bool foreach (ForallFunc<EventElement> f) {
+            Iterator<EventElement> iter = this.iterator();
+            return iter.foreach(f);
+        }
+
         public Iterator<EventElement> iterator () {
             return new EventIterator (this);
         }
@@ -185,7 +190,7 @@ namespace DVB {
             return new EventIterator (this);
         }
 
-        private class EventIterator : Object, Iterator<EventElement>, BidirIterator<EventElement> {
+        private class EventIterator : Object, Traversable<EventElement>, Iterator<EventElement>, BidirIterator<EventElement> {
 
             private EventStorage _storage;
             private SequenceIter<EventElement> _iter;
@@ -197,6 +202,9 @@ namespace DVB {
                 this._storage = storage;
                 this._stamp = storage._stamp;
             }
+
+            public bool valid { get { return true; }}
+            public bool read_only { get { return true; }}
 
             public bool next () {
                 assert (_stamp == _storage._stamp);
@@ -225,7 +233,7 @@ namespace DVB {
                 assert (_stamp == _storage._stamp);
                 assert (_iter != null);
 
-                return _storage.events.get (_iter);
+                return _iter.get ();
             }
 
             public void remove () {
@@ -253,6 +261,16 @@ namespace DVB {
                     return true;
                 }
                 return false;
+            }
+
+            public bool foreach (ForallFunc<EventElement> f) {
+                assert (_stamp == _storage._stamp);
+                while (!_iter.is_end ()) {
+				    _iter = _iter.next ();
+                    if (!f(_iter.get()))
+                        return false;
+                }
+                return true;
             }
         }
 

@@ -28,7 +28,7 @@ namespace DVB {
      * A group of devices that share the same settings
      * (list of channels, recordings dir)
      */
-    public class DeviceGroup : GLib.Object, IDBusDeviceGroup, Iterable<Device> {
+    public class DeviceGroup : GLib.Object, IDBusDeviceGroup, Traversable<Device>, Iterable<Device> {
 
         private static Logger log = LogManager.getLogManager().getDefaultLogger();
 
@@ -76,8 +76,9 @@ namespace DVB {
 
         construct {
             this.devices = new HashSet<Device> (Device.hash, Device.equal);
-            this.schedules = new HashSet<string> (GLib.str_hash,
-                GLib.str_equal);
+            this.schedules = new HashSet<string> (
+                Gee.Functions.get_hash_func_for(typeof(string)),
+                Gee.Functions.get_equal_func_for(typeof(string)));
             this.devices.add (this.reference_device);
             this._channelfactory = new ChannelFactory (this);
             this._recorder = new Recorder (this);
@@ -453,6 +454,10 @@ namespace DVB {
 
         public Iterator<Device> iterator () {
             return this.devices.iterator();
+        }
+
+        public bool foreach (ForallFunc<Device> f) {
+            return this.devices.iterator().foreach(f);
         }
 
         /**

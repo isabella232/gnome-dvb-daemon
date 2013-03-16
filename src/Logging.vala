@@ -199,7 +199,9 @@ public class Logger : GLib.Object {
     private Gee.HashSet<Handler> handlers;
 
     construct {
-        this.handlers = new Gee.HashSet<Handler> (GLib.direct_hash, GLib.direct_equal);
+        this.handlers = new Gee.HashSet<Handler> (
+            Gee.Functions.get_hash_func_for(typeof(Handler)),
+            Gee.Functions.get_equal_func_for(typeof(Handler)));
     }
 
     public void addHandler (Handler handler) {
@@ -274,8 +276,10 @@ public class LogManager : GLib.Object {
     private Gee.HashMap<string, Logger> loggers;
 
     construct {
-        this.loggers = new Gee.HashMap<string, Logger> (GLib.str_hash,
-            GLib.str_equal, GLib.direct_equal);
+        this.loggers = new Gee.HashMap<string, Logger> (
+            Gee.Functions.get_hash_func_for(typeof(string)),
+            Gee.Functions.get_equal_func_for(typeof(string)),
+            Gee.Functions.get_equal_func_for(typeof(Logger)));
     }
 
     public static unowned LogManager getLogManager () {

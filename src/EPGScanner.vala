@@ -266,13 +266,13 @@ namespace DVB {
         }
 
         public void on_eit_structure (Gst.Structure structure) {
-            Gst.Value events = structure.get_value ("events");
+            Value events = structure.get_value ("events");
 
-            if (!(events.holds (Gst.Value.list_get_type ())))
+            if (!(events.holds (Value.list_get_type ())))
                 return;
 
             uint size = events.list_get_size ();
-            Gst.Value val;
+            Value val;
             weak Gst.Structure event;
             // Iterate over events
             lock (this.channel_events) {
@@ -314,7 +314,7 @@ namespace DVB {
                     event.get_boolean ("free-ca-mode", out free_ca);
                     event_class.free_ca_mode = free_ca;
 /*
-                    Gst.Value components = event.get_value ("components");
+                    Value components = event.get_value ("components");
                     add_components (components, event_class);
 */
                     //log.debug ("Adding new event: %s", event_class.to_string ());
@@ -324,10 +324,10 @@ namespace DVB {
             }
         }
 /*
-        private static void add_components (Gst.Value components, Event event_class) {
+        private static void add_components (Value components, Event event_class) {
             uint components_len = components.list_get_size ();
 
-            Gst.Value comp_val;
+            Value comp_val;
             weak Gst.Structure component;
             for (uint j=0; j<components_len; j++) {
                 comp_val = components.list_get_value (j);

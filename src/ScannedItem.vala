@@ -37,24 +37,24 @@ namespace DVB {
             Object (Frequency: frequency);
         }
 
-        public static uint hash (ScannedItem* o) {
+        public static uint hash (ScannedItem o) {
             uint hashval;
             // Most specific class first
             if (o is ScannedSatteliteItem) {
-                hashval = 2 * PRIME + PRIME * o->Frequency
+                hashval = 2 * PRIME + PRIME * o.Frequency
                     + ((ScannedSatteliteItem)o).Polarization.hash ();
             } else if (o is ScannedItem) {
-                hashval = o->Frequency;
+                hashval = o.Frequency;
             } else {
                 hashval = 0;
             }
             return hashval;
         }
 
-        public static bool equal (ScannedItem* o1, ScannedItem* o2) {
+        public static bool equal (ScannedItem o1, ScannedItem o2) {
             if (o1 == null || o2 == null) return false;
 
-            if (o1->get_type().name() != o2->get_type().name()) return false;
+            if (o1.get_type().name() != o2.get_type().name()) return false;
 
             if (o1 is ScannedSatteliteItem) {
                 ScannedSatteliteItem item1 = (ScannedSatteliteItem)o1;

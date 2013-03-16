@@ -52,8 +52,10 @@ namespace DVB {
         private static const string[] UDEV_SUBSYSTEMS = {"dvb", null};
 
         construct {
-            this.scanners = new HashMap<string, ScannerData> (GLib.str_hash,
-                GLib.str_equal, GLib.direct_equal);
+            this.scanners = new HashMap<string, ScannerData> (
+                Gee.Functions.get_hash_func_for(typeof(string)),
+                Gee.Functions.get_equal_func_for(typeof(string)),
+                Gee.Functions.get_equal_func_for(typeof(ScannerData)));
             this.devices = new HashMap<uint, DeviceGroup> ();
             this.device_group_counter = 0;
             this.udev_client = new GUdev.Client (UDEV_SUBSYSTEMS);

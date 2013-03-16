@@ -25,7 +25,7 @@ using DVB.Logging;
 
 namespace DVB {
 
-    public class ChannelList : GLib.Object, Iterable<Channel>, IDBusChannelList {
+    public class ChannelList : GLib.Object, Traversable<Channel>, Iterable<Channel>, IDBusChannelList {
 
         private static Logger log = LogManager.getLogManager().getDefaultLogger();
 
@@ -87,6 +87,10 @@ namespace DVB {
 
         public Iterator<Channel> iterator () {
             return this.channels.values.iterator();
+        }
+
+        public bool foreach(ForallFunc<Channel> f) {
+            return this.channels.iterator().foreach(f);
         }
 
         public void load (AdapterType type) throws Error {
