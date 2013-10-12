@@ -63,7 +63,6 @@ gnome_dvb_daemon_SOURCES = \
 	src/Timer.vala \
 	src/Utils.vala \
 	src/rtsp/MediaFactory.vala \
-	src/rtsp/MediaMapping.vala \
 	src/rtsp/Server.vala \
 	src/rygel/Interfaces2.vala \
 	src/rygel/Services2.vala \

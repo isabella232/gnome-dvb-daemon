@@ -51,7 +51,7 @@ namespace DVB.RTSPServer {
         log = LogManager.getLogManager().getDefaultLogger();
         log.info ("Starting RTSP server");
         server = new Gst.RTSPServer ();
-        server.set_media_mapping (new MediaMapping ());
+        server.get_mount_points().add_factory("/", new MediaFactory());
         server.set_address (get_address ());
         server.attach (null);
         timeout_id = GLib.Timeout.add_seconds (2, (GLib.SourceFunc)timeout);
@@ -76,15 +76,16 @@ namespace DVB.RTSPServer {
     }
 
     private class StopChannelHelper {
-        private Gst.RTSP.Url url;
+        private string url;
 
         public StopChannelHelper (string url_str) {
-            Gst.RTSP.url_parse (url_str, out this.url);
+            this.url = url_str;
         }
 
         public Gst.RTSPFilterResult session_filter_func (Gst.RTSPSessionPool pool,
                 Gst.RTSPSession session) {
-            if (session.get_media (this.url) != null) {
+            int matched;
+            if (session.get_media (this.url, out matched) != null) {
                 return Gst.RTSPFilterResult.REMOVE;
             } else {
                 return Gst.RTSPFilterResult.KEEP;

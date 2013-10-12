@@ -101,16 +101,16 @@ namespace Main {
 
     private static bool check_requirements () {
         bool val;
-        val = check_feature_version ("dvbsrc", 0, 10, 13);
+        val = check_feature_version ("dvbsrc", 1, 2, 0);
         if (!val) return false;
 
-        val = check_feature_version ("dvbbasebin", 0, 10, 13);
+        val = check_feature_version ("dvbbasebin", 1, 2, 0);
         if (!val) return false;
 
-        val = check_feature_version ("mpegtsparse", 0, 10, 13);
+        val = check_feature_version ("tsparse", 1, 2, 0);
         if (!val) return false;
 
-        val = check_feature_version ("rtpmp2tpay", 0, 10, 14);
+        val = check_feature_version ("rtpmp2tpay", 1, 0, 0);
         return val;
     }
 
