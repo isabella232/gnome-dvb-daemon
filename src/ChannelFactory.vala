@@ -246,7 +246,7 @@ namespace DVB {
             return bin;
         }
 
-        private static int find_element (void* av, void *bv) {
+        private static int find_element (GLib.Value av, Gst.Element bv) {
             Gst.Element a = (Gst.Element)av;
             Gst.Element b = (Gst.Element)bv;
             if (a == b) return 0;
@@ -267,8 +267,8 @@ namespace DVB {
                 if (celems != null) {
                     foreach (Gst.Element sink_bin in celems.sinks) {
                         Gst.Iterator it = ((Gst.Bin)sink_bin).iterate_elements ();
-                        Gst.Element element = it.find_custom (find_element, sink);
-                        if (element != null) {
+                        GLib.Value elem;
+                        if (it.find_custom<Gst.Element> (find_element, out elem, sink)) {
                             result = sink_bin;
                             break;
                         }
