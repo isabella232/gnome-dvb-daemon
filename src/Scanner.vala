@@ -355,7 +355,7 @@ namespace DVB {
 
             if (!this.scanned_frequencies.contains (item)) {
                 log.debug ("Queueing new frequency %u", item.Frequency);
-                this.frequencies.push_tail (structure);
+                this.frequencies.push_tail ((owned) structure);
                 this.scanned_frequencies.add (item);
             }
         }
@@ -650,7 +650,7 @@ namespace DVB {
 
                 if (transport.has_field ("delivery")) {
                     Value delivery_val = transport.get_value ("delivery");
-                    weak Gst.Structure delivery = Gst.Value.get_structure (
+                    unowned Gst.Structure delivery = Gst.Value.get_structure (
                         delivery_val);
 
                     log.debug ("Received TS 0x%x", tsid);
@@ -658,7 +658,7 @@ namespace DVB {
                     uint freq;
                     delivery.get_uint ("frequency", out freq);
                     // Takes care of duplicates
-                    this.add_structure_to_scan (delivery);
+                    this.add_structure_to_scan (delivery.copy());
                 }
 
                 if (transport.has_field ("channels")) {
@@ -754,7 +754,7 @@ namespace DVB {
         protected bool bus_watch_func (Gst.Bus bus, Gst.Message message) {
             switch (message.type) {
                 case Gst.MessageType.ELEMENT: {
-                    Gst.Structure structure = message.get_structure ();
+                    unowned Gst.Structure structure = message.get_structure ();
                     string structure_name = structure.get_name();
                     if (structure_name == "dvb-frontend-stats")
                         this.on_dvb_frontend_stats_structure (structure);

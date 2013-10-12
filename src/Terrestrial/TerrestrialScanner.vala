@@ -98,7 +98,7 @@ namespace DVB {
             tuning_params.set_value ("constellation", constellation);
             tuning_params.set_value ("guard-interval", guard);
 
-            base.add_structure_to_scan (tuning_params);
+            base.add_structure_to_scan ((owned) tuning_params);
         }
 
         protected override void add_scanning_data_from_string (string line) {

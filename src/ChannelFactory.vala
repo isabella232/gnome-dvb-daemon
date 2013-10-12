@@ -500,7 +500,7 @@ namespace DVB {
          * Forward EIT structure
          */
         private void bus_watch_func (Gst.Bus bus, Gst.Message message) {
-            Gst.Structure structure = message.get_structure ();
+            unowned Gst.Structure structure = message.get_structure ();
             switch (message.type) {
                 case Gst.MessageType.ELEMENT:
                     string structure_name = structure.get_name ();

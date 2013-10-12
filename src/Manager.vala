@@ -398,7 +398,7 @@ namespace DVB {
             while (bus.have_pending()) {
                 Gst.Message msg = bus.pop ();
                 if (msg.type == Gst.MessageType.ELEMENT && msg.src == dvbelement) {
-                    Gst.Structure structure = msg.get_structure ();
+                    unowned Gst.Structure structure = msg.get_structure ();
                     if (structure.get_name () == "dvb-adapter") {
                         info.name = structure.get_string ("name");
                         info.type = structure.get_string ("type");
