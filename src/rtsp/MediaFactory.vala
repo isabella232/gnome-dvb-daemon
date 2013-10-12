@@ -81,9 +81,9 @@ namespace DVB {
 
             // Construct media
           	Gst.RTSPMedia media = new DVBMedia (devgrp, channel, payload);
-            media.element = bin;
+            media.set_property("element", bin);
             // Set pipeline
-            media.pipeline = player.get_pipeline ();
+            media.take_pipeline ( (Gst.Pipeline) player.get_pipeline ());
 
             media.collect_streams ();
 
