@@ -31,7 +31,7 @@ class Preferences(Gtk.Window):
     (BUTTON_EDIT,
      BUTTON_REMOVE,
      SEP1,
-     BUTTON_PREFERENCES,) = range(4)
+     BUTTON_PREFERENCES,) = list(range(4))
 
     def __init__(self, model, parent=None):
         GObject.GObject.__init__(self)

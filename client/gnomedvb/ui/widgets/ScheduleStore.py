@@ -31,16 +31,16 @@ class ScheduleStore(Gtk.ListStore):
      COL_SHORT_DESC,
      COL_EXTENDED_DESC,
      COL_RECORDED,
-     COL_EVENT_ID,) = range(8)
+     COL_EVENT_ID,) = list(range(8))
 
-    NEW_DAY = -1L
+    NEW_DAY = -1
 
     __gsignals__ = {
         "loading-finished":  (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, []),
     }
 
     def __init__(self, dev_group, sid):
-        Gtk.ListStore.__init__(self, GObject.TYPE_PYOBJECT, str, long, str, str, str, int, long)
+        Gtk.ListStore.__init__(self, GObject.TYPE_PYOBJECT, str, int, str, str, str, int, int)
         self._client = dev_group.get_schedule(sid)
         if self._client != None:
             self._recorder = dev_group.get_recorder()

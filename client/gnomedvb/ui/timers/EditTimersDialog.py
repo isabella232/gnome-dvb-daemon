@@ -33,7 +33,7 @@ class EditTimersDialog(Gtk.Dialog):
     COL_TITLE,
     COL_START,
     COL_DURATION,
-    COL_ACTIVE,) = range(6)
+    COL_ACTIVE,) = list(range(6))
 
     def __init__(self, device_group, parent=None):
         """
@@ -63,7 +63,7 @@ class EditTimersDialog(Gtk.Dialog):
         self.main_box.show()
         self.get_content_area().pack_start(self.main_box, True, True, 0)
 
-        self.timerslist = Gtk.ListStore(long, str, str, GObject.TYPE_PYOBJECT, long, bool)
+        self.timerslist = Gtk.ListStore(int, str, str, GObject.TYPE_PYOBJECT, int, bool)
         self.timerslist.set_sort_func(self.COL_START,
             self._datetime_sort_func)
 
@@ -150,7 +150,7 @@ class EditTimersDialog(Gtk.Dialog):
             starttime = datetime.datetime(*start_list)
             (duration, active, channel, title) = self.recorder.get_all_informations(timer_id)[0][1:]
 
-            self.timerslist.append([long(timer_id), channel, title, starttime, duration, bool(active)])
+            self.timerslist.append([int(timer_id), channel, title, starttime, duration, bool(active)])
 
     def _remove_timer(self, timer_id):
         for row in self.timerslist:

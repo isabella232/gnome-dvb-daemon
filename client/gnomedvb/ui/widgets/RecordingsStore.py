@@ -29,10 +29,10 @@ class RecordingsStore(Gtk.ListStore):
     COL_NAME,
     COL_DURATION,
     COL_LOCATION,
-    COL_ID,) = range(6)
+    COL_ID,) = list(range(6))
 
     def __init__(self):
-        Gtk.ListStore.__init__(self, GObject.TYPE_PYOBJECT, str, str, long, str, long)
+        Gtk.ListStore.__init__(self, GObject.TYPE_PYOBJECT, str, str, int, str, int)
 
         self._recstore = DVBRecordingsStoreClient()
         self._recstore.connect("changed", self._on_changed)

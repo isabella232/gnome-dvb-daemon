@@ -45,7 +45,7 @@ CHANNEL_LIST_IFACE = "org.gnome.DVB.ChannelList"
 SCHEDULE_IFACE = "org.gnome.DVB.Schedule"
 
 def _default_error_handler_func(*args):
-    print >> sys.stderr, "Error: " + str(args)
+    print("Error: " + str(args), file=sys.stderr)
 
 global_error_handler = _default_error_handler_func
 

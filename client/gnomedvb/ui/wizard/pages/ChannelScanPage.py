@@ -34,7 +34,7 @@ class ChannelScanPage(BasePage):
      COL_NAME,
      COL_ACTIVE,
      COL_SID,
-     COL_SCRAMBLED) = range(5)
+     COL_SCRAMBLED) = list(range(5))
 
     MENU = '''<ui>
     <popup name="channels-popup">

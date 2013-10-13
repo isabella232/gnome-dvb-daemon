@@ -595,7 +595,7 @@ class ControlCenterWindow(Gtk.Window):
         #translators: These appear in the About dialog, usual format applies.
         about.set_translator_credits( _("translator-credits") )
 
-        for prop, val in gnomedvb.INFOS.items():
+        for prop, val in list(gnomedvb.INFOS.items()):
             about.set_property(prop, val)
 
         about.set_screen(self.get_screen())

@@ -25,7 +25,7 @@ __all__ = ["UnassignedDevicesStore", "DeviceGroupsStore", "DeviceGroupsView"]
 
 class UnassignedDevicesStore (Gtk.ListStore):
 
-    (COL_DEVICE,) = range(1)
+    (COL_DEVICE,) = list(range(1))
 
     def __init__(self):
         Gtk.ListStore.__init__(self, GObject.TYPE_PYOBJECT)
@@ -33,7 +33,7 @@ class UnassignedDevicesStore (Gtk.ListStore):
 
 class DeviceGroupsStore (Gtk.TreeStore):
 
-    (COL_GROUP, COL_DEVICE,) = range(2)
+    (COL_GROUP, COL_DEVICE,) = list(range(2))
 
     def __init__(self):
         Gtk.TreeStore.__init__(self, GObject.GObject, GObject.TYPE_PYOBJECT)

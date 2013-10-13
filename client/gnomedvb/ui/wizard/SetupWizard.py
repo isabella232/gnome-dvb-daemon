@@ -63,7 +63,7 @@ class SetupWizard(Gtk.Assistant):
      CHANNEL_SCAN_PAGE,
      SAVE_CHANNELS_PAGE,
      SETUP_DEVICE_PAGE,
-     SUMMARY_PAGE) = range(7)
+     SUMMARY_PAGE) = list(range(7))
 
     def __init__(self):
         GObject.GObject.__init__(self)

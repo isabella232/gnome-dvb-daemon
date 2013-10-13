@@ -226,7 +226,7 @@ class InitialTuningDataPage(BasePage):
         self.countries.set_sort_column_id(0, Gtk.SortType.ASCENDING)
         self.countries.set_sort_func(0, self.combobox_sort_func)
 
-        for code, name in countries.items():
+        for code, name in list(countries.items()):
             self.countries.append([name, code])
 
         self.country_combo = Gtk.ComboBox.new_with_model_and_entry(self.countries)
@@ -299,7 +299,7 @@ class InitialTuningDataPage(BasePage):
         self.countries.set_sort_column_id(0, Gtk.SortType.ASCENDING)
         self.countries.set_sort_func(0, self.combobox_sort_func, None)
 
-        for code, name in countries.items():
+        for code, name in list(countries.items()):
             self.countries.append([name, code])
 
         self.country_combo = Gtk.ComboBox.new_with_model_and_entry(self.countries)

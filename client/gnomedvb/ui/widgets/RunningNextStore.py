@@ -29,10 +29,10 @@ class RunningNextStore(Gtk.ListStore):
      COL_NEXT,
      COL_SID,
      COL_RUNNING_EVENT,
-     COL_NEXT_EVENT) = range(8)
+     COL_NEXT_EVENT) = list(range(8))
 
     def __init__(self, group):
-        Gtk.ListStore.__init__(self, str, long, str, long, str, long, long, long)
+        Gtk.ListStore.__init__(self, str, int, str, int, str, int, int, int)
 
         self.set_sort_column_id(self.COL_CHANNEL,
             Gtk.SortType.ASCENDING)

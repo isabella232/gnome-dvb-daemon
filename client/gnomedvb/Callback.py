@@ -1,3 +1,4 @@
+import collections
 # -*- coding: utf-8 -*-
 # Copyright (C) 2009 Sebastian Pölsterl
 #
@@ -22,7 +23,7 @@ class Callback:
         self.callbacks = []
 
     def add_callback(self, callback_function, *args):
-        if not callable(callback_function):
+        if not isinstance(callback_function, collections.Callable):
             raise TypeError("first argument must be callable")
         self.callbacks.append((callback_function, args))
 

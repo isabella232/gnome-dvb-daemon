@@ -32,7 +32,7 @@ w = SetupWizard()
 w.realize()
 
 if options.transient_for:
-	print "Parent window:", options.transient_for
+	print("Parent window:", options.transient_for)
 	w.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
 	w.set_modal(True)
 	#XXX foreign_win = Gdk.window_foreign_new(options.transient_for)

@@ -22,7 +22,7 @@ class ChannelGroupsStore(Gtk.ListStore):
 
     (COL_ID,
      COL_NAME,
-     COL_EDITABLE,) = range(3)
+     COL_EDITABLE,) = list(range(3))
 
     def __init__(self):
         Gtk.ListStore.__init__(self, int, str, bool)

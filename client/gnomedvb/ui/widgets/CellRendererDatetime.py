@@ -43,7 +43,7 @@ class CellRendererDatetime(Gtk.CellRendererText):
         elif prop.name == 'format':
             return self._format
         else:
-            raise AttributeError, 'unknown property %s' % prop.name
+            raise AttributeError('unknown property %s' % prop.name)
 
     def do_set_property(self, prop, value):
         if prop.name == 'datetime':
@@ -53,7 +53,7 @@ class CellRendererDatetime(Gtk.CellRendererText):
             self._format = value
             self._set_text()
         else:
-            raise AttributeError, 'unknown property %s' % prop.name
+            raise AttributeError('unknown property %s' % prop.name)
 
     def _set_text(self):
         if self._datetime == None:

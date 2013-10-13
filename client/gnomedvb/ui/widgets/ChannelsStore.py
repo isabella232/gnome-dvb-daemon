@@ -27,7 +27,7 @@ from gnomedvb import _
 class ChannelsStore(Gtk.ListStore):
 
     (COL_NAME,
-     COL_SID,) = range(2)
+     COL_SID,) = list(range(2))
 
     __gsignals__ = {
         "loading-finished":  (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, []),
@@ -39,7 +39,7 @@ class ChannelsStore(Gtk.ListStore):
         list of channels should be retrieved
         """
 
-        Gtk.ListStore.__init__(self, str, long)
+        Gtk.ListStore.__init__(self, str, int)
 
         self.set_sort_column_id(self.COL_NAME,
             Gtk.SortType.ASCENDING)
@@ -63,14 +63,14 @@ class ChannelsTreeStore(Gtk.TreeStore):
     (COL_GROUP_ID,
      COL_NAME,
      COL_SID,
-     COL_GROUP,) = range(4)
+     COL_GROUP,) = list(range(4))
 
     __gsignals__ = {
         "loading-finished":  (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, [int]),
     }
 
     def __init__(self, use_channel_groups=False):
-        Gtk.TreeStore.__init__(self, int, str, long, GObject.GObject)
+        Gtk.TreeStore.__init__(self, int, str, int, GObject.GObject)
 
         self.set_sort_order(Gtk.SortType.ASCENDING)
 
@@ -92,7 +92,7 @@ class ChannelsTreeStore(Gtk.TreeStore):
         group_id = dev_group.get_id()
         group_name = dev_group.get_name()
 
-        group_iter = self.append(None, [group_id, group_name, 0L, dev_group])
+        group_iter = self.append(None, [group_id, group_name, 0, dev_group])
         channellist = dev_group.get_channel_list()
 
         d = Callback()
@@ -104,9 +104,9 @@ class ChannelsTreeStore(Gtk.TreeStore):
                 error_handler=global_error_handler)
             # Put all available channels either in TV or radio group
             tv_group_iter = self.append(group_iter,
-                [group_id, _("TV Channels"), 0L, dev_group])
+                [group_id, _("TV Channels"), 0, dev_group])
             radio_group_iter = self.append(group_iter,
-                [group_id, _("Radio Channels"), 0L, dev_group])
+                [group_id, _("Radio Channels"), 0, dev_group])
         else:
             # Do not distinguish between radio and TV
             tv_group_iter = group_iter

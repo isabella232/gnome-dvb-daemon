@@ -125,7 +125,7 @@ class ChannelListEditorDialog(Gtk.Dialog):
         cbox.pack_start(left_frame, True, True, 0)
 
         # selected channels
-        self.selected_channels_store = Gtk.ListStore(str, long) # Name, sid
+        self.selected_channels_store = Gtk.ListStore(str, int) # Name, sid
         self.selected_channels_view = Gtk.TreeView.new_with_model(self.selected_channels_store)
         self.selected_channels_view.set_reorderable(True)
         self.selected_channels_view.set_headers_visible(False)
