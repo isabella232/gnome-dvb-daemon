@@ -96,7 +96,7 @@ namespace DVB {
         protected HashSet<ScannedItem> scanned_frequencies;
 
         private static const string BASE_PIDS = "16:17"; // NIT, SDT
-        private static const string PIPELINE_TEMPLATE = "dvbsrc name=dvbsrc adapter=%u frontend=%u pids=%s stats-reporting-interval=100 ! mpegtsparse ! fakesink silent=true";
+        private static const string PIPELINE_TEMPLATE = "dvbsrc name=dvbsrc adapter=%u frontend=%u pids=%s stats-reporting-interval=100 ! tsparse ! fakesink silent=true";
 
         // Contains SIDs
         private ArrayList<uint> new_channels;

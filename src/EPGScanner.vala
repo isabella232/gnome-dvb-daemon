@@ -34,7 +34,7 @@ namespace DVB {
         private static const int WAIT_FOR_EIT_DURATION = 10;
         // pids: 0=pat, 16=nit, 17=sdt, 18=eit
         private static const string PIPELINE_TEMPLATE =
-        "dvbsrc name=dvbsrc adapter=%u frontend=%u pids=0:16:17:18 stats-reporting-interval=0 ! mpegtsparse ! fakesink silent=true";
+        "dvbsrc name=dvbsrc adapter=%u frontend=%u pids=0:16:17:18 stats-reporting-interval=0 ! tsparse ! fakesink silent=true";
 
         private unowned DVB.DeviceGroup DeviceGroup;
 
