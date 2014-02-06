@@ -27,9 +27,6 @@ dnl * i18n
 dnl *********************
 IT_PROG_INTLTOOL([0.40.0])
 
-AM_GNU_GETTEXT_VERSION([0.18.1])
-AM_GNU_GETTEXT([external])
-
 AC_SUBST([GETTEXT_PACKAGE], [gnome-dvb-daemon])
 AC_DEFINE([GETTEXT_PACKAGE], [PACKAGE_TARNAME], [Define to the gettext package name])
 
