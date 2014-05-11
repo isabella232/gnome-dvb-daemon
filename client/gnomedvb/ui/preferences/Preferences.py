@@ -272,7 +272,7 @@ class Preferences(Gtk.Window):
                 recdir = dialog.recordings_entry.get_text()
                 name = dialog.name_entry.get_text()
                 self._model.add_device_to_new_group(device.adapter,
-                        device.frontend, channels, recdir, name,
+                        device.frontend, device.type, channels, recdir, name,
                         result_handler=add_device_to_new_group_callback,
                         error_handler=global_error_handler)
 

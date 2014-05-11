@@ -19,6 +19,7 @@
 from gi.repository import Gtk
 from gi.repository import GObject
 from gnomedvb import _
+from gnomedvb.ui.wizard import DVB_TYPE_TO_DESC
 from gnomedvb.Device import Device
 
 __all__ = ["UnassignedDevicesStore", "DeviceGroupsStore", "DeviceGroupsView"]
@@ -64,7 +65,7 @@ class DeviceGroupsView (Gtk.TreeView):
 
         if isinstance(device, Device):
             # translators: first is device's name, second its type
-            text = _("<b>%s (%s)</b>\n") % (device.name, device.type)
+            text = _("<b>%s (%s)</b>\n") % (device.name, DVB_TYPE_TO_DESC[device.type])
             text += "<small>%s</small>" % (_("Adapter: %d, Frontend: %d") % (device.adapter,
                 device.frontend))
         else:

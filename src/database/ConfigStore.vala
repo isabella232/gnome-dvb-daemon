@@ -24,13 +24,16 @@ namespace DVB.database {
     public interface ConfigStore : GLib.Object {
 
         public abstract Gee.List<DeviceGroup> get_all_device_groups () throws SqlError;
+        public abstract DeviceGroup? get_device_group (uint group_id) throws SqlError;
+        public abstract bool is_last_device (uint group_id) throws SqlError;
+        public abstract bool is_group_member (Device dev, DeviceGroup group) throws SqlError;
         public abstract bool add_device_group (DeviceGroup dev_group) throws SqlError;
         public abstract bool remove_device_group (DeviceGroup devgroup) throws SqlError;
         public abstract bool add_device_to_group (Device dev, DeviceGroup devgroup) throws SqlError;
         public abstract bool remove_device_from_group (Device dev, DeviceGroup devgroup) throws SqlError;
         public abstract bool update_from_group (DeviceGroup devgroup) throws SqlError;
 
-        public abstract bool get_parent_group (uint adapter, uint frontend, out uint group_id) throws SqlError;
+        public abstract bool get_parent_groups (uint adapter, uint frontend, out uint[] group_ids) throws SqlError;
 
         public abstract bool add_channel_group (string name, out int channel_group_id) throws SqlError;
         public abstract bool remove_channel_group (int group_id) throws SqlError;

@@ -26,11 +26,11 @@ import gettext
 import locale
 from gnomedvb import _
 from gnomedvb.ui.wizard.pages.BasePage import BasePage
+from gnomedvb import GROUP_TERRESTRIAL
+from gnomedvb import GROUP_SATELLITE
+from gnomedvb import GROUP_CABLE
 
-DVB_APPS_DIRS = ("/usr/share/dvb",
-                 "/usr/share/dvb-apps",
-                 "/usr/share/dvb-apps/scan",
-                 "/usr/share/doc/dvb-utils/examples/scan")
+DVB_APPS_DIRS = ("/usr/share/dvb-v5",)
 
 COUNTRIES = {
     "ad": "Andorra",
@@ -158,13 +158,13 @@ class InitialTuningDataPage(BasePage):
             self.setup_dvb_apps_missing()
             return
 
-        if info["type"] == "DVB-T":
+        if info["type"] == GROUP_TERRESTRIAL:
             self.setup_dvb_t()
             self.__page_title = _("Country and antenna selection")
-        elif info["type"] == "DVB-S":
+        elif info["type"] == GROUP_SATELLITE:
             self.setup_dvb_s()
             self.__page_title = _("Satellite selection")
-        elif info["type"] == "DVB-C":
+        elif info["type"] == GROUP_CABLE:
             self.setup_dvb_c()
             self.__page_title = _("Country and provider selection")
         else:
@@ -232,7 +232,7 @@ class InitialTuningDataPage(BasePage):
         self.country_combo = Gtk.ComboBox.new_with_model_and_entry(self.countries)
         self.country_combo.set_hexpand(True)
         self.country_combo.connect('changed', self.on_country_changed)
-        self.__data_dir = "dvb-t"
+        self.__data_dir = "terrestrial"
         cell = Gtk.CellRendererText()
         self.country_combo.pack_start(cell, True)
         self.country_combo.set_entry_text_column(0)
@@ -305,7 +305,7 @@ class InitialTuningDataPage(BasePage):
         self.country_combo = Gtk.ComboBox.new_with_model_and_entry(self.countries)
         self.country_combo.set_hexpand(True)
         self.country_combo.connect('changed', self.on_country_changed)
-        self.__data_dir = "dvb-c"
+        self.__data_dir = "cable"
         cell = Gtk.CellRendererText()
         self.country_combo.pack_start(cell, True)
         self.country_combo.set_entry_text_column(0)
@@ -373,7 +373,7 @@ class InitialTuningDataPage(BasePage):
 
     def _fill_providers(self, selected_country):
         # Only DVB-T has bruteforce scan
-        if self.__adapter_info["type"] == "DVB-T":
+        if self.__adapter_info["type"] == GROUP_TERRESTRIAL:
             self.providers.append([_("Don't know"), self.NOT_LISTED])
 
         for d in DVB_APPS_DIRS:
@@ -407,8 +407,8 @@ class InitialTuningDataPage(BasePage):
     def read_satellites(self):
         for d in DVB_APPS_DIRS:
             if os.access(d, os.F_OK | os.R_OK):
-                for f in os.listdir(os.path.join(d, 'dvb-s')):
-                    self.satellites.append([f, os.path.join(d, 'dvb-s', f)])
+                for f in os.listdir(os.path.join(d, 'satellite')):
+                    self.satellites.append([f, os.path.join(d, 'satellite', f)])
 
     def on_satellite_changed(self, selection):
         model, aiter = selection.get_selected()
@@ -428,27 +428,22 @@ class InitialTuningDataPage(BasePage):
         self.__tuning_data = []
         for chan in range(5, 13):
             freq = 142500000 + chan * 7000000
-            for transmode in ["2k", "8k"]:
-                for guard in [0, 32, 16, 8, 4]:
-                    self.__tuning_data.append(
-                        self.create_parameters_dict(freq, 7, transmode, guard))
+            self.__tuning_data.append(self.create_parameters_dict(freq, 7))
 
         for chan in range(21, 70):
-            freq = 306000000 + chan* 8000000
-            for transmode in ["2k", "8k"]:
-                for guard in [32, 16, 8, 4]:
-                    self.__tuning_data.append(
-                        self.create_parameters_dict(freq, 8, transmode, guard))
+            freq = 306000000 + chan * 8000000
+            self.__tuning_data.append(self.create_parameters_dict(freq, 8))
 
-    def create_parameters_dict(self, freq, bandwidth, transmode, guard):
+    def create_parameters_dict(self, freq, bandwidth):
         return {"frequency": GLib.Variant('u', freq),
-            "hierarchy": GLib.Variant('u', 4), # AUTO
+            "delsys": GLib.Variant('s', "DVBT"),
+            "hierarchy": GLib.Variant('s', "AUTO"),
             "bandwidth": GLib.Variant('u', bandwidth),
-            "transmission-mode": GLib.Variant('s', transmode),
-            "code-rate-hp": GLib.Variant('s', "NONE"),
+            "transmission-mode": GLib.Variant('s', "QAM/AUTO"),
+            "code-rate-hp": GLib.Variant('s', "AUTO"),
             "code-rate-lp": GLib.Variant('s', "AUTO"),
-            "constellation": GLib.Variant('s', "QAM64"),
-            "guard-interval": GLib.Variant('u', guard)}
+            "constellation": GLib.Variant('s', "AUTO"),
+            "guard-interval": GLib.Variant('s', "AUTO")}
 
     def combobox_sort_func(self, model, iter1, iter2, user_data):
         name1, code1 = model[iter1]

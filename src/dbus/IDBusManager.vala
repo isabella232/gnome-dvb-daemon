@@ -22,13 +22,15 @@ using GLib;
 namespace DVB {
 
     public struct ChannelGroupInfo {
-	    public int id;
-	    public string name;
+        public int id;
+        public string name;
     }
 
     public struct AdapterInfo {
         public string name;
-        public string type;
+        public bool type_t;
+        public bool type_s;
+        public bool type_c;
     }
 
     [DBus (name = "org.gnome.DVB.Manager")]
@@ -40,13 +42,14 @@ namespace DVB {
         /**
          * @adapter: Number of the device's adapter
          * @frontend: Number of the device's frontend
+         * @type: the type
          * @opath: Object path of the scanner service
          * @dbusiface: DBus interface of the scanner service
          * @returns: TRUE on success
          *
          * Get the object path of the channel scanner for this device.
          */
-        public abstract bool GetScannerForDevice (uint adapter, uint frontend,
+        public abstract bool GetScannerForDevice (uint adapter, uint frontend, AdapterType type,
                 out ObjectPath opath, out string dbusiface) throws DBusError;
 
         /**
@@ -64,6 +67,7 @@ namespace DVB {
         /**
          * @adapter: Number of the device's adapter
          * @frontend: Number of the device's frontend
+         * @type: the type of the group
          * @channels_conf: Path to channels.conf for this device
          * @recordings_dir: Path where the recordings should be stored
          * @name: Name of group
@@ -74,7 +78,7 @@ namespace DVB {
          * all other devices of this group will inherit the settings
          * of the reference device).
          */
-        public abstract bool AddDeviceToNewGroup (uint adapter, uint frontend,
+        public abstract bool AddDeviceToNewGroup (uint adapter, uint frontend, AdapterType type,
                 string channels_conf, string recordings_dir, string name) throws DBusError;
 
         /**
@@ -87,7 +91,7 @@ namespace DVB {
          * is returned.
          */
         public abstract bool GetNameOfRegisteredDevice (uint adapter, uint frontend,
-        	out string name) throws DBusError;
+            out string name) throws DBusError;
 
         /**
          * @returns: the numner of configured device groups
@@ -116,7 +120,7 @@ namespace DVB {
          * @returns: informations about all connected
          * devices retrieved via udev
          */
-		public abstract GLib.HashTable<string, string>[] GetDevices () throws DBusError;
+        public abstract GLib.HashTable<string, string>[] GetDevices () throws DBusError;
 
         /**
          * @info: type and name of adapter

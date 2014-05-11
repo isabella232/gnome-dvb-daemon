@@ -17,8 +17,13 @@
 # along with GNOME DVB Daemon.  If not, see <http://www.gnu.org/licenses/>.
 
 import gnomedvb
+from gnomedvb import GROUP_UNKNOWN
+from gnomedvb import GROUP_TERRESTRIAL
+from gnomedvb import GROUP_SATELLITE
+from gnomedvb import GROUP_CABLE
 import re
 from gnomedvb.Device import Device
+import copy
 
 class DVBModel (gnomedvb.DVBManagerClient):
 
@@ -51,7 +56,7 @@ class DVBModel (gnomedvb.DVBManagerClient):
         devs = []
         for info in gnomedvb.get_dvb_devices():
             dev = Device (0, "Unknown", info["adapter"], info["frontend"],
-                "Unknown")
+                GROUP_UNKNOWN)
             devs.append(dev)
         result_handler(devs)
 
@@ -67,9 +72,21 @@ class DVBModel (gnomedvb.DVBManagerClient):
                     success, info = gnomedvb.get_adapter_info(dev.adapter,
                         dev.frontend)
                     if success:
-                        dev.name = info["name"]
-                        dev.type = info["type"]
-                        unregistered.add(dev)
+                        if info["type_t"]:
+                            dev_t = copy.copy(dev)
+                            dev_t.name = info["name"]
+                            dev_t.type = GROUP_TERRESTRIAL
+                            unregistered.add(dev_t)
+                        if info["type_s"]:
+                            dev_s = copy.copy(dev)
+                            dev_s.name = info["name"]
+                            dev_s.type = GROUP_SATELLITE
+                            unregistered.add(dev_s)
+                        if info["type_c"]:
+                            dev_c = copy.copy(dev)
+                            dev_c.name = info["name"]
+                            dev_c.type = GROUP_CABLE
+                            unregistered.add(dev_c)
             result_handler(unregistered)
 
         def registered_handler(devgroups):
@@ -114,7 +131,7 @@ class DeviceGroup(gnomedvb.DVBDeviceGroupClient):
                 adapter = int(match.group(1))
                 frontend = int(match.group(2))
                 devname, success = manager.get_name_of_registered_device(adapter, frontend)
-                dev = Device (self._id, devname, adapter, frontend, self["type"])
+                dev = Device (self._id, devname, adapter, frontend, self._type)
                 dev.group_name = self._name
                 devices.append(dev)
         return devices

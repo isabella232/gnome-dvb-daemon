@@ -31,7 +31,7 @@ namespace DVB {
          * @returns: Name of adapter type the group holds
          * or an empty string when group with given id doesn't exist.
          */
-        public abstract string GetType () throws DBusError;
+        public abstract AdapterType GetType () throws DBusError;
 
         /**
          * @returns: Object path of the device's recorder

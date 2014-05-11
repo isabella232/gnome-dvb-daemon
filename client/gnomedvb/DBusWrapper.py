@@ -45,14 +45,14 @@ CHANNEL_LIST_IFACE = "org.gnome.DVB.ChannelList"
 SCHEDULE_IFACE = "org.gnome.DVB.Schedule"
 
 def _default_error_handler_func(*args):
-    print("Error: " + str(args), file=sys.stderr)
+    print("Error: " + str(args)) #, file=sys.stderr)
 
 global_error_handler = _default_error_handler_func
 
 def get_adapter_info(adapter, frontend):
     manager = DVBManagerClient()
     info_t, success = manager.get_adapter_info(adapter, frontend)
-    info = {"name": info_t[0], "type": info_t[1]}
+    info = {"name": info_t[0], "type_t": info_t[1], "type_s": info_t[2], "type_c": info_t[3]}
     return (success, info)
 
 def get_dvb_devices():
@@ -91,8 +91,8 @@ class DVBManagerClient(GObject.GObject):
         self.manager = _get_proxy(MANAGER_PATH, MANAGER_IFACE)
         self.manager.connect("g-signal", self.on_g_signal)
 
-    def get_scanner_for_device(self, adapter, frontend):
-        objpath, scanner_iface, success = self.manager.GetScannerForDevice ('(uu)', adapter, frontend)
+    def get_scanner_for_device(self, adapter, frontend, type):
+        objpath, scanner_iface, success = self.manager.GetScannerForDevice ('(uui)', adapter, frontend, type)
         if success:
             return DVBScannerClient(objpath, scanner_iface)
         else:
@@ -120,8 +120,8 @@ class DVBManagerClient(GObject.GObject):
         else:
             return [DVBDeviceGroupClient(path) for path in self.manager.GetRegisteredDeviceGroups()]
 
-    def add_device_to_new_group (self, adapter, frontend, channels_file, recordings_dir, name, **kwargs):
-        return self.manager.AddDeviceToNewGroup('(uusss)', adapter, frontend, channels_file, recordings_dir, name, **kwargs)
+    def add_device_to_new_group (self, adapter, frontend, type, channels_file, recordings_dir, name, **kwargs):
+        return self.manager.AddDeviceToNewGroup('(uuisss)', adapter, frontend, type, channels_file, recordings_dir, name, **kwargs)
 
     def get_name_of_registered_device(self, adapter, frontend, **kwargs):
         return self.manager.GetNameOfRegisteredDevice('(uu)', adapter, frontend, **kwargs)

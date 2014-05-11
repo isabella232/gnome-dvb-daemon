@@ -20,6 +20,7 @@ using GLib;
 using Gee;
 using Gst;
 using DVB.Logging;
+using GstMpegTs;
 
 namespace DVB {
 
@@ -49,12 +50,13 @@ namespace DVB {
         /**
          * Emitted when we came across EIT table
          */
-        public signal void eit_structure (Gst.Structure structure);
+        public signal void eit_structure (Section section);
 
         // List of channels that are currently in use
         public HashSet<Channel> active_channels {get; construct;}
         // The device in use
         public Device device {get; construct;}
+        public DeviceGroup group {get; construct;}
         // Whether watching one of the channels was forced
         public bool forced {
             get {
@@ -86,9 +88,10 @@ namespace DVB {
         /**
          * @device: The device to use
          * @epgscanner: #EPGScanner to forward EIT to
+         * @group: #DeviceGroup
          */
-        public PlayerThread (Device device, EPGScanner? epgscanner) {
-            base (device: device);
+        public PlayerThread (Device device, EPGScanner? epgscanner, DeviceGroup group) {
+            base (device: device, group: group);
             this.epgscanner = epgscanner;
         }
 
@@ -129,7 +132,6 @@ namespace DVB {
                         log.error ("Could not create dvbbasebin element");
                         return null;
                     }
-                    this.dvbbasebin.pad_added.connect (this.on_dvbbasebin_pad_added);
 
                     channel.setup_dvb_source (this.dvbbasebin);
 
@@ -144,10 +146,14 @@ namespace DVB {
                     this.add_element (tee);
 
                     bin = this.add_sink_bin (sink_element);
+                    if (bin == null)
+                        log.error ("no bin");
                     if (!tee.link (bin)) {
                         log.error ("Could not link tee and bin");
                         return null;
                     }
+
+                    this.link_tee_pad (this.dvbbasebin, tee);
 
                     create_channel = true;
 
@@ -268,7 +274,7 @@ namespace DVB {
                     foreach (Gst.Element sink_bin in celems.sinks) {
                         Gst.Iterator it = ((Gst.Bin)sink_bin).iterate_elements ();
                         GLib.Value elem;
-                        if (it.find_custom<Gst.Element> (find_element, out elem, sink)) {
+                        if (it.find_custom ((GLib.CompareFunc)find_element, out elem, sink)) {
                             result = sink_bin;
                             break;
                         }
@@ -424,7 +430,7 @@ namespace DVB {
                     lock (this.elements_map) {
                         foreach (ChannelElements celems in this.elements_map.values) {
                             if (celems.notify_func != null) {
-                                Channel channel = this.device.Channels.get_channel (
+                                Channel channel = this.group.Channels.get_channel (
                                     celems.sid);
                                 celems.notify_func (channel);
                             }
@@ -458,41 +464,22 @@ namespace DVB {
             return true;
         }
 
+
         /**
          * Link program_%d pad with tee
          */
-        private void on_dvbbasebin_pad_added (Gst.Element elem, Gst.Pad pad) {
-            string pad_name = pad.get_name();
-            log.debug ("Pad %s added", pad_name);
+        private void link_tee_pad (Gst.Element dvbbasebin, Gst.Element tee) {
+            log.debug ("link_tee_pad");
 
-            if (!pad_name.has_prefix ("program_"))
-                return;
+            log.debug ("Linking elements %s and %s", dvbbasebin.get_name(), tee.get_name ());
+            Pad srcpad = dvbbasebin.get_static_pad ("src");
+            Pad sinkpad = tee.get_static_pad ("sink");
 
-            uint sid;
-            pad_name.scanf("program_%u", out sid);
-
-            log.debug ("SID is '%u'", sid);
-            // Check if we're interested in the pad
-            lock (this.elements_map) {
-                if (this.elements_map.has_key (sid)) {
-                    Element? sink = this.elements_map.get (sid).tee;
-                    if (sink == null) {
-                        log.error ("Could not find sink for SID %u", sid);
-                        return;
-                    }
-
-                    log.debug ("Linking elements %s and %s", elem.get_name(), sink.get_name ());
-                    Pad sinkpad = sink.get_static_pad ("sink");
-
-                    PadLinkReturn rc = pad.link (sinkpad);
-                    if (rc != PadLinkReturn.OK) {
-                        log.error ("Could not link pads %s and %s", pad.get_name (),
-                            sinkpad.get_name ());
-                    } else {
-                        log.debug ("Src pad %s linked with sink pad %s",
-                            pad.get_name (), sinkpad.get_name ());
-                    }
-                }
+            PadLinkReturn rc = srcpad.link (sinkpad);
+            if (rc != PadLinkReturn.OK) {
+                log.error ("Could not link pads %s and %s", srcpad.get_name (), sinkpad.get_name ());
+            } else {
+                log.debug ("Src pad %s linked with sink pad %s", srcpad.get_name (), sinkpad.get_name ());
             }
         }
 
@@ -503,11 +490,14 @@ namespace DVB {
             unowned Gst.Structure structure = message.get_structure ();
             switch (message.type) {
                 case Gst.MessageType.ELEMENT:
-                    string structure_name = structure.get_name ();
-                    if (structure_name == "eit") {
-                        if (this.epgscanner != null)
-                            this.epgscanner.on_eit_structure (structure);
-                        this.eit_structure (structure);
+                    Section section = message_parse_mpegts_section(message);
+
+                    if (section != null) {
+                        if (section.section_type == SectionType.EIT) {
+                            if (this.epgscanner != null)
+                                this.epgscanner.on_eit_structure (section);
+                            this.eit_structure (section);
+                        }
                     }
                     break;
                 case Gst.MessageType.WARNING:
@@ -653,7 +643,7 @@ namespace DVB {
          * @returns: a new #PlayerThread instance for @device
          */
         public virtual PlayerThread create_player (Device device) {
-            return new PlayerThread (device, this.device_group.epgscanner);
+            return new PlayerThread (device, this.device_group.epgscanner, this.device_group);
         }
 
     }

@@ -54,9 +54,10 @@ namespace Main {
         DVB.Utils.dbus_register_object<DVB.IDBusManager> (_conn,
             DVB.Constants.DBUS_MANAGER_PATH, manager);
         conn = _conn;
-        start_recordings_store ();
 
         restore_device_groups ();
+
+        start_recordings_store ();
     }
 
     private static void start_recordings_store () {
@@ -101,16 +102,16 @@ namespace Main {
 
     private static bool check_requirements () {
         bool val;
-        val = check_feature_version ("dvbsrc", 1, 2, 0);
+        val = check_feature_version ("dvbsrc", 1, 3, 1);
         if (!val) return false;
 
-        val = check_feature_version ("dvbbasebin", 1, 2, 0);
+        val = check_feature_version ("dvbbasebin", 1, 3, 1);
         if (!val) return false;
 
-        val = check_feature_version ("tsparse", 1, 2, 0);
+        val = check_feature_version ("tsparse", 1, 3, 1);
         if (!val) return false;
 
-        val = check_feature_version ("rtpmp2tpay", 1, 0, 0);
+        val = check_feature_version ("rtpmp2tpay", 1, 3, 1);
         return val;
     }
 
@@ -128,28 +129,25 @@ namespace Main {
         uint max_group_id = 0;
         log.info ("Restoring %d device groups", device_groups.size);
         foreach (DVB.DeviceGroup device_group in device_groups) {
+            // add device to group if device is a member
+            foreach (DVB.Device dev in manager.devs) {
+                log.debug ("restoring device");
+                try {
+                    if (config_store.is_group_member (dev, device_group)) {
+                        log.debug ("add device %s", dev.DevFile);
+                        if (device_group.add (dev))
+                        device_group.device_added (dev.Adapter, dev.Frontend);
+                    }
+                } catch (DVB.database.SqlError e) {
+                    warning ("%s", e.message);
+                }
+            }
             manager.restore_device_group_and_timers (device_group);
             if (device_group.Id > max_group_id)
                 max_group_id = device_group.Id;
+            device_group.start_epg_scanner ();
         }
 
-        restore_fake_devices (max_group_id);
-    }
-
-    private static void restore_fake_devices (uint max_group_id) {
-        DVB.Settings settings = new DVB.Factory().get_settings ();
-        Gee.List<DVB.Device> devices = settings.get_fake_devices ();
-        if (devices.size > 0) {
-            DVB.Device ref_dev = devices.get (0);
-            DVB.DeviceGroup group = new DVB.DeviceGroup (max_group_id + 1,
-                ref_dev, false);
-            group.Name = "Fake Devices";
-            for (int i=1; i<devices.size; i++) {
-                group.add (devices.get (i));
-            }
-
-            manager.restore_device_group (group, false);
-        }
     }
 
     private static void configure_logging () {
@@ -213,6 +211,9 @@ namespace Main {
 
         // Initializing GStreamer
         Gst.init (ref args);
+
+        // Initializing GStreamer-Mpegts
+        GstMpegTs.initialize ();
 
         configure_logging ();
 

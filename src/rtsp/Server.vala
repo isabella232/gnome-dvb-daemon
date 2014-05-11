@@ -51,7 +51,6 @@ namespace DVB.RTSPServer {
         log = LogManager.getLogManager().getDefaultLogger();
         log.info ("Starting RTSP server");
         server = new Gst.RTSPServer ();
-        server.get_mount_points().add_factory("/", new MediaFactory());
         server.set_address (get_address ());
         server.attach (null);
         timeout_id = GLib.Timeout.add_seconds (2, (GLib.SourceFunc)timeout);

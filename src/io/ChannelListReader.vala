@@ -19,6 +19,7 @@
 
 using GLib;
 using DVB.Logging;
+using GstMpegTs;
 
 namespace DVB.io {
 
@@ -29,287 +30,118 @@ namespace DVB.io {
         public ChannelList channels {get; construct;}
         public AdapterType Type {get; construct;}
 
+        private KeyFile file;
+
         public ChannelListReader (ChannelList channels, AdapterType type) {
             base (channels: channels, Type: type);
+            this.file = new KeyFile ();
+            this.file.set_list_separator (' ');
         }
 
         public void read_into () throws Error {
             return_if_fail (this.channels.channels_file != null);
 
-            var reader = new DataInputStream (
-                this.channels.channels_file.read (null));
+            try {
+                this.file.load_from_file (this.channels.channels_file.get_path(), KeyFileFlags.NONE);
 
-        	string line = null;
-        	size_t len;
-        	while ((line = reader.read_line (out len, null)) != null) {
-            if (len > 0) {
-                Channel c = this.parse_line (line);
-                if (c != null) {
-                    channels.add (c);
-                } else
-                    warning ("Could not parse channel");
+                foreach (unowned string group in this.file.get_groups ()) {
+                    log.debug ("Channel: %s", group);
+
+                    // parse Delivery system stuff
+                    Channel c = null;
+                    switch (this.file.get_string (group, "DELIVERY_SYSTEM")) {
+                        case "DVBT":
+                            c = parse_dvb_t (group);
+                            break;
+                        case "DVBC/ANNEX_A":
+                            c = parse_dvb_c (group);
+                            break;
+                        case "DVBS":
+                            c = parse_dvb_s (group);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (c == null) continue;
+
+                    c.Sid = (uint)this.file.get_uint64 (group, "SERVICE_ID");
+                    c.Name = this.file.get_string (group, "SERVICE_NAME");
+                    c.TransportStreamId = (uint)this.file.get_uint64 (group, "TRANSPORT_STREAM_ID");
+                    c.Scrambled = this.file.get_boolean (group, "SCRAMBLED");
+                    c.ServiceType = (DVBServiceType)this.file.get_uint64 (group, "SERVICE_TYPE");
+                    if (this.file.has_key (group, "VIDEO_PID"))
+                        c.VideoPID = (uint)this.file.get_uint64 (group, "VIDEO_PID");
+
+                    if (this.file.has_key (group, "AUDIO_PID")) {
+                        uint[] apids = (uint[])this.file.get_integer_list (group, "AUDIO_PID");
+                        for (uint i = 0; i < apids.length; i++)
+                            c.AudioPIDs.add(apids[i]);
+                    }
+
+                    if (c.is_valid ())
+                        channels.add (c);
+                    else
+                        warning ("Could not parse channel");
                 }
-        	}
-        	reader.close (null);
-        }
-
-        private Channel? parse_line (string line) {
-            Channel? c = null;
-            switch (this.Type) {
-                case AdapterType.DVB_T:
-                c = parse_terrestrial_channel (line);
-                break;
-
-                case AdapterType.DVB_S:
-                c = parse_satellite_channel (line);
-                break;
-
-                case AdapterType.DVB_C:
-                c = parse_cable_channel (line);
-                break;
-
-                default:
-                log.error ("Unknown adapter type");
-                break;
+            } catch (FileError e) {
+                log.error ("Can not open channel file: %s", e.message);
+            } catch (KeyFileError e) {
+                log.error ("%s", e.message);
             }
 
-            if (c != null && c.is_valid ()) {
-                return c;
-            } else {
-                string val = (c == null) ? "(null)" : c.to_string ();
-                warning ("Channel is not valid: %s", val);
-                return null;
-            }
         }
 
-        /**
-         * @line: The line to parse
-         * @returns: #TerrestrialChannel representing that line
-         *
-         * A line looks like
-         * Das Erste:212500000:INVERSION_AUTO:BANDWIDTH_7_MHZ:FEC_3_4:FEC_1_2:QAM_16:TRANSMISSION_MODE_8K:GUARD_INTERVAL_1_4:HIERARCHY_NONE:513:514:32
-         */
-        private TerrestrialChannel? parse_terrestrial_channel (string line) {
-            var channel = new TerrestrialChannel (this.channels.GroupId);
+        private Channel? parse_dvb_t (string group) throws KeyFileError, FileError {
+            if (this.Type != AdapterType.TERRESTRIAL) return null;
 
-            string[] fields = line.split(":");
+            Channel c = new Channel (this.channels.GroupId);
+            DvbTParameter param = new DvbTParameter.with_parameter ((uint)this.file.get_uint64 (group, "FREQUENCY"),
+                (uint)this.file.get_uint64 (group, "BANDWIDTH_HZ"),
+                getGuardIntervalEnum (this.file.get_string (group, "GUARD_INTERVAL")),
+                getTransmissionModeEnum (this.file.get_string (group, "TRANSMISSION_MODE")),
+                getHierarchyEnum (this.file.get_string (group, "HIERARCHY")),
+                getModulationEnum (this.file.get_string (group, "MODULATION")),
+                getCodeRateEnum (this.file.get_string (group, "CODE_RATE_LP")),
+                getCodeRateEnum (this.file.get_string (group, "CODE_RATE_HP")));
 
-            int i=0;
-            string val;
-            bool failed = false;
-            while ( (val = fields[i]) != null) {
-                if (i == 0) {
-                    if (val.validate())
-                        channel.Name = val;
-                    else {
-                        warning ("Bad UTF-8 encoded channel name");
-                        channel.Name = "Bad encoding";
-                    }
-                } else if (i == 1) {
-                    channel.Frequency = (uint)int.parse (val);
-                } else if (i == 2) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcInversion), val,
-                            "DVB_DVB_SRC_INVERSION_", out eval)) {
-                        channel.Inversion = (DvbSrcInversion) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 3) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcBandwidth), val,
-                            "DVB_DVB_SRC_BANDWIDTH_", out eval)) {
-                        channel.Bandwidth = (DvbSrcBandwidth) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 4) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcCodeRate), val,
-                            "DVB_DVB_SRC_CODE_RATE_", out eval)) {
-                        channel.CodeRateHP = (DvbSrcCodeRate) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 5) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcCodeRate), val,
-                            "DVB_DVB_SRC_CODE_RATE_", out eval)) {
-                        channel.CodeRateLP = (DvbSrcCodeRate) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 6) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcModulation), val,
-                            "DVB_DVB_SRC_MODULATION_", out eval)) {
-                        channel.Constellation = (DvbSrcModulation) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 7) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcTransmissionMode),
-                            val, "DVB_DVB_SRC_TRANSMISSION_MODE_", out eval)) {
-                        channel.TransmissionMode = (DvbSrcTransmissionMode) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 8) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcGuard), val,
-                            "DVB_DVB_SRC_GUARD_", out eval)) {
-                        channel.GuardInterval = (DvbSrcGuard) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 9) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcHierarchy), val,
-                            "DVB_DVB_SRC_HIERARCHY_", out eval)) {
-                        channel.Hierarchy = (DvbSrcHierarchy) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 10) {
-                    channel.VideoPID = (uint)int.parse (val);
-                } else if (i == 11) {
-                    channel.AudioPIDs.add ((uint)int.parse (val));
-                } else if (i == 12) {
-                    channel.Sid = (uint)int.parse (val);
-                }
+            c.Param = param;
 
-                i++;
-            }
-
-            if (failed) return null;
-            else return channel;
+            return c;
         }
 
-        /**
-         *
-         * A line looks like
-         * Das Erste:11836:h:0:27500:101:102:28106
-         */
-        private SatelliteChannel? parse_satellite_channel (string line) {
-            var channel = new SatelliteChannel (this.channels.GroupId);
+        private Channel? parse_dvb_s (string group) throws KeyFileError, FileError {
+            if (this.Type != AdapterType.SATELLITE) return null;
 
-            string[] fields = line.split(":");
+            Channel c = new Channel (this.channels.GroupId);
+            DvbSParameter param = new DvbSParameter.with_parameter ((uint)this.file.get_uint64 (group, "FREQUENCY"),
+                (uint)this.file.get_uint64 (group, "SYMBOL_RATE"),
+                (float)this.file.get_double (group, "ORBITAL_POSITION"),
+                getPolarizationEnum (this.file.get_string (group, "POLARIZATION")),
+                getCodeRateEnum (this.file.get_string (group, "INNER_FEC")));
 
-            int i=0;
-            string val;
-            while ( (val = fields[i]) != null) {
-                if (i == 0) {
-                    if (val.validate())
-                        channel.Name = val;
-                    else {
-                        warning ("Bad UTF-8 encoded channel name");
-                        channel.Name = "Bad encoding";
-                    }
-                } else if (i == 1) {
-                    // frequency is stored in MHz
-                    channel.Frequency = (uint)(int.parse (val) * 1000);
-                } else if (i == 2) {
-                    channel.Polarization = val;
-                } else if (i == 3) {
-                    // Sat number
-                    channel.DiseqcSource = int.parse (val);
-                } else if (i == 4) {
-                    // symbol rate is stored in kBaud
-                    channel.SymbolRate = (uint)int.parse (val);
-                } else if (i == 5) {
-                    channel.VideoPID = (uint)int.parse (val);
-                } else if (i == 6) {
-                    channel.AudioPIDs.add ((uint)int.parse (val));
-                } else if (i == 7) {
-                    channel.Sid = (uint)int.parse (val);
-                }
+            if (this.file.has_key (group, "SAT_NUMBER"))
+                param.DiseqcSource = this.file.get_integer (group, "SAT_NUMBER");
 
-                i++;
-            }
+            c.Param = param;
 
-            return channel;
+            return c;
         }
 
-        /**
-         *
-         * line looks like
-         * ProSieben:330000000:INVERSION_AUTO:6900000:FEC_NONE:QAM_64:255:256:898
-         */
-        private CableChannel? parse_cable_channel (string line) {
-            var channel = new CableChannel (this.channels.GroupId);
+        private Channel? parse_dvb_c (string group) throws KeyFileError, FileError {
+            if (this.Type != AdapterType.CABLE) return null;
 
-            string[] fields = line.split(":");
+            Channel c = new Channel (this.channels.GroupId);
+            DvbCEuropeParameter param = new DvbCEuropeParameter.with_parameter ((uint)this.file.get_uint64 (group, "FREQUENCY"),
+                (uint)this.file.get_uint64 (group, "SYMBOL_RATE"),
+                getModulationEnum (this.file.get_string (group, "MODULATION")),
+                getCodeRateEnum (this.file.get_string (group, "INNER_FEC")));
 
-            int i=0;
-            string val;
-            bool failed = false;
-            while ( (val = fields[i]) != null) {
-                if (i == 0) {
-                    if (val.validate())
-                        channel.Name = val;
-                    else {
-                        warning ("Bad UTF-8 encoded channel name");
-                        channel.Name = "Bad encoding";
-                    }
-                } else if (i == 1) {
-                    channel.Frequency = (uint)int.parse (val);
-                } else if (i == 2) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcInversion), val,
-                            "DVB_DVB_SRC_INVERSION_", out eval)) {
-                        channel.Inversion = (DvbSrcInversion) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 3) {
-                    channel.SymbolRate = (uint)(int.parse (val) / 1000);
-                } else if (i == 4) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcCodeRate), val,
-                            "DVB_DVB_SRC_CODE_RATE_", out eval)) {
-                        channel.CodeRate = (DvbSrcCodeRate) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 5) {
-                    int eval;
-                    if (get_value_with_prefix (typeof(DvbSrcModulation), val,
-                            "DVB_DVB_SRC_MODULATION_", out eval)) {
-                        channel.Modulation = (DvbSrcModulation) eval;
-                    } else {
-                        failed = true;
-                        break;
-                    }
-                } else if (i == 6) {
-                    channel.VideoPID = (uint)int.parse (val);
-                } else if (i == 7) {
-                    channel.AudioPIDs.add ((uint)int.parse (val));
-                } else if (i == 8) {
-                    channel.Sid = (uint)int.parse (val);
-                }
+            c.Param = param;
 
-                i++;
-            }
-
-            if (failed) return null;
-            else return channel;
+            return c;
         }
 
-        private static bool get_value_with_prefix (GLib.Type enumtype, string name,
-                                                  string prefix, out int val) {
-            return Utils.get_value_by_name_from_enum (enumtype, prefix + name, out val);
-        }
     }
 
 }

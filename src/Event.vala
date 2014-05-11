@@ -49,12 +49,12 @@ namespace DVB {
         public string extended_description;
         /* Components */
         public SList<AudioComponent> audio_components;
-        public SList<VideoComponent> video_components;
+        public VideoComponent video_component;
         public SList<TeletextComponent> teletext_components;
 
         public Event () {
             this.audio_components = new SList<AudioComponent> ();
-            this.video_components = new SList<VideoComponent> ();
+            this.video_component = null;
             this.teletext_components = new SList<TeletextComponent> ();
 
             this.year = 0;
@@ -106,8 +106,19 @@ namespace DVB {
             + "Duration: %u\nName: %s\nDescription: %s\n".printf (
             this.duration, this.name, this.description);
 
+            if (this.video_component != null) {
+                text += "Video: HD = %s, 3D = %s, Aspect-Ratio = %s, ".printf(this.video_component.has_hd.to_string(),
+                        this.video_component.has_3d.to_string(), this.video_component.aspect_ratio);
+                text += "Frequency = %s Hz, Type = %s\n".printf(this.video_component.frequency.to_string(),
+                        this.video_component.type);
+            }
             for (int i=0; i<this.audio_components.length (); i++) {
-                text += "%s ".printf(this.audio_components.nth_data (i).type);
+                text += "Audio: Type = %s, Text = %s\n".printf(this.audio_components.nth_data (i).type, this.audio_components.nth_data(i).text);
+            }
+
+            for (int i=0; i<this.teletext_components.length (); i++) {
+                text += "Teletext, VBI, Subpicture: Type = %s, Text = %s\n".printf(this.teletext_components.nth_data (i).type,
+                         this.teletext_components.nth_data (i).text);
             }
             return text;
         }
@@ -206,16 +217,28 @@ namespace DVB {
 
         public class AudioComponent {
             public string type;
+            public string language;
+            public uint tag;
+            public string content;
+            public string text;
         }
 
         public class VideoComponent {
-            public bool high_definition;
+            public bool has_hd;
+            public bool has_3d;
             public string aspect_ratio;
             public int frequency;
+            public string type;
+            public uint tag;
+            public string content;
+            public string text;
         }
 
         public class TeletextComponent {
             public string type;
+            public string content;
+            public uint tag;
+            public string text;
         }
     }
 

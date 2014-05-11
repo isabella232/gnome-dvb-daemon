@@ -371,7 +371,7 @@ namespace DVB.database.sqlite {
                 statement.column_text (7));
             // We don't save those
             event.audio_components = null;
-            event.video_components = null;
+            event.video_component = null;
             event.teletext_components = null;
 
             return event;

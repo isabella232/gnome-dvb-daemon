@@ -18,6 +18,8 @@
  */
 
 using GLib;
+using DVB.Logging;
+using GstMpegTs;
 
 namespace DVB.io {
 
@@ -35,11 +37,20 @@ namespace DVB.io {
      */
     public class ChannelListWriter : GLib.Object {
 
-        public File file {get; construct;}
+        public File file { get; construct; }
+
+        private KeyFile keyfile;
 
         private OutputStream stream;
 
-        private void open_stream () throws Error {
+        private void open () throws Error {
+
+            if (this.keyfile != null)
+                return;
+
+            this.keyfile = new KeyFile ();
+            this.keyfile.set_list_separator (' ');
+
             FileOutputStream fostream = null;
 
             if (file.query_exists (null)) {
@@ -56,123 +67,96 @@ namespace DVB.io {
         }
 
         public void write (Channel channel) throws Error {
-            if (this.stream == null) this.open_stream ();
-            if (this.stream == null) return;
 
-            string buffer;
+            if (this.keyfile == null) this.open ();
+            if (this.keyfile == null) return;
 
-            // Write channel name
-            buffer = "%s:".printf (channel.Name);
-            this.stream.write_all (buffer.data, null, null);
-
-            // Write special data
-            if (channel is TerrestrialChannel) {
-                this.write_terrestrial_channel ((TerrestrialChannel)channel);
-            } else if (channel is SatelliteChannel) {
-                this.write_satellite_channel ((SatelliteChannel)channel);
-            } else if (channel is CableChannel) {
-                this.write_cable_channel ((CableChannel)channel);
-            } else {
-                warning ("Unknown channel type");
+            switch (channel.Param.Delsys) {
+                case DvbSrcDelsys.SYS_DVBT:
+                    this.write_terrestrial_channel (channel);
+                    break;
+                case DvbSrcDelsys.SYS_DVBC_ANNEX_A:
+                    this.write_cable_channel (channel);
+                    break;
+                case DvbSrcDelsys.SYS_DVBS:
+                    this.write_satellite_channel (channel);
+                    break;
+                default:
+                    return;
             }
 
-            uint apid;
-            if (channel.AudioPIDs.size == 0)
-                apid = 0;
-            else
-                apid = channel.AudioPIDs.get (0);
-
-            // Write common data
-            buffer = ":%u:%u:%u\n".printf (channel.VideoPID,
-                apid, channel.Sid);
-            this.stream.write_all (buffer.data, null);
+            this.keyfile.set_uint64 (channel.Name, "SERVICE_ID", channel.Sid);
+            this.keyfile.set_uint64 (channel.Name, "SERVICE_TYPE", channel.ServiceType);
+            /* should remove ? */
+            if (channel.VideoPID != 0)
+                this.keyfile.set_uint64 (channel.Name, "VIDEO_PID", channel.VideoPID);
+            /* should remove ? */
+            if (channel.AudioPIDs.size > 0) {
+                int[] apid = new int[channel.AudioPIDs.size];
+                for (int i = 0; i < channel.AudioPIDs.size; i++) {
+                    apid[i] = (int)channel.AudioPIDs.@get(i);
+                }
+                this.keyfile.set_integer_list (channel.Name, "AUDIO_PID", apid);
+            }
+            this.keyfile.set_boolean (channel.Name, "SCRAMBLED", channel.Scrambled);
+            this.keyfile.set_string (channel.Name, "PROVIDER", channel.Network);
+            this.keyfile.set_string (channel.Name, "SERVICE_NAME", channel.Name);
+            this.keyfile.set_uint64 (channel.Name, "TRANSPORT_STREAM_ID", channel.TransportStreamId);
         }
 
         public bool close () throws Error {
-            if (this.stream == null) return true;
-            return this.stream.close (null);
+          if (this.keyfile != null) {
+              // write now data
+              this.stream.write_all (this.keyfile.to_data ().data, null, null);
+              this.keyfile = null;
+          }
+
+          if (this.stream == null) return true;
+
+          return this.stream.close (null);
+
         }
 
-        private void write_terrestrial_channel (TerrestrialChannel channel) throws Error {
-            string[] elements = new string[9];
+        private void write_terrestrial_channel (Channel channel) throws Error {
+            // write channel data
+            DvbTParameter param = (DvbTParameter)channel.Param;
 
-            elements[0] = "%u".printf (channel.Frequency);
-
-            elements[1] = get_name_without_prefix (typeof(DvbSrcInversion),
-                                                      channel.Inversion,
-                                                      "DVB_DVB_SRC_INVERSION_");
-
-            elements[2] = get_name_without_prefix (typeof(DvbSrcBandwidth),
-                                                      channel.Bandwidth,
-                                                      "DVB_DVB_SRC_BANDWIDTH_");
-
-            elements[3] = get_name_without_prefix (typeof(DvbSrcCodeRate),
-                                                      channel.CodeRateHP,
-                                                      "DVB_DVB_SRC_CODE_RATE_");
-
-            elements[4] = get_name_without_prefix (typeof(DvbSrcCodeRate),
-                                                      channel.CodeRateLP,
-                                                      "DVB_DVB_SRC_CODE_RATE_");
-
-            elements[5] = get_name_without_prefix (typeof(DvbSrcModulation),
-                                                      channel.Constellation,
-                                                      "DVB_DVB_SRC_MODULATION_");
-
-            elements[6] = get_name_without_prefix (typeof(DvbSrcTransmissionMode),
-                                                      channel.TransmissionMode,
-                                                      "DVB_DVB_SRC_TRANSMISSION_MODE_");
-
-            elements[7] = get_name_without_prefix (typeof(DvbSrcGuard),
-                                                      channel.GuardInterval,
-                                                      "DVB_DVB_SRC_GUARD_");
-
-            elements[8] = get_name_without_prefix (typeof(DvbSrcHierarchy),
-                                                      channel.Hierarchy,
-                                                      "DVB_DVB_SRC_HIERARCHY_");
-
-            string buffer = string.joinv (":", elements);
-            this.stream.write_all (buffer.data, null);
+            this.keyfile.set_string (channel.Name, "DELIVERY_SYSTEM", "DVBT");
+            this.keyfile.set_uint64 (channel.Name, "FREQUENCY", param.Frequency);
+            this.keyfile.set_uint64 (channel.Name, "BANDWIDTH_HZ", param.Bandwidth);
+            this.keyfile.set_string (channel.Name, "MODULATION", getModulationString (param.Constellation));
+            this.keyfile.set_string (channel.Name, "CODE_RATE_HP", getCodeRateString (param.CodeRateHP));
+            this.keyfile.set_string (channel.Name, "CODE_RATE_LP", getCodeRateString (param.CodeRateLP));
+            this.keyfile.set_string (channel.Name, "GUARD_INTERVAL", getGuardIntervalString (param.GuardInterval));
+            this.keyfile.set_string (channel.Name, "TRANSMISSION_MODE", getTransmissionModeString (param.TransmissionMode));
+            this.keyfile.set_string (channel.Name, "HIERARCHY", getHierarchyString (param.Hierarchy));
         }
 
-        private void write_satellite_channel (SatelliteChannel channel) throws Error {
-            string buffer = "%u:%s:%d:%u".printf (channel.Frequency / 1000,
-                                                  channel.Polarization,
-                                                  channel.DiseqcSource,
-                                                  channel.SymbolRate);
-            this.stream.write_all (buffer.data, null);
+        private void write_satellite_channel (Channel channel) throws Error {
+            // write channel data
+            DvbSParameter param = (DvbSParameter)channel.Param;
+
+            this.keyfile.set_string (channel.Name, "DELIVERY_SYSTEM", "DVBS");
+            this.keyfile.set_uint64 (channel.Name, "FREQUENCY", param.Frequency);
+            this.keyfile.set_uint64 (channel.Name, "SYMBOL_RATE", param.SymbolRate);
+            this.keyfile.set_string (channel.Name, "INNER_FEC", getCodeRateString (param.InnerFEC));
+            this.keyfile.set_string (channel.Name, "POLARIZATION", getPolarizationString (param.Polarization));
+            this.keyfile.set_double (channel.Name, "ORBITAL_POSITION", (double)param.OrbitalPosition);
+            if (param.DiseqcSource > -1)
+                this.keyfile.set_uint64 (channel.Name, "SAT_NUMBER", param.DiseqcSource);
         }
 
-        private void write_cable_channel (CableChannel channel) throws Error {
-            string[] elements = new string [5];
+        private void write_cable_channel (Channel channel) throws Error {
+            // write channel data
+            DvbCEuropeParameter param = (DvbCEuropeParameter)channel.Param;
 
-            elements[0] = "%u".printf (channel.Frequency);
+            this.keyfile.set_string (channel.Name, "DELIVERY_SYSTEM", "DVBC/ANNEX_A");
+            this.keyfile.set_uint64 (channel.Name, "FREQUENCY", param.Frequency);
+            this.keyfile.set_uint64 (channel.Name, "SYMBOL_RATE", param.SymbolRate);
+            this.keyfile.set_string (channel.Name, "INNER_FEC", getCodeRateString (param.InnerFEC));
+            this.keyfile.set_string (channel.Name, "MODULATION", getModulationString (param.Modulation));
 
-            elements[1] = get_name_without_prefix (typeof(DvbSrcInversion),
-                                                      channel.Inversion,
-                                                      "DVB_DVB_SRC_INVERSION_");
-
-            elements[2] = "%u".printf (channel.SymbolRate * 1000);
-
-            elements[3] = get_name_without_prefix (typeof(DvbSrcCodeRate),
-                                                      channel.CodeRate,
-                                                      "DVB_DVB_SRC_CODE_RATE_");
-
-            elements[4] = get_name_without_prefix (typeof(DvbSrcModulation),
-                                                      channel.Modulation,
-                                                      "DVB_DVB_SRC_MODULATION_");
-
-            string buffer = string.joinv (":", elements);
-            this.stream.write_all (buffer.data, null);
-        }
-
-        private static string? get_name_without_prefix (GLib.Type enumtype,
-                                                             int val, string prefix) {
-            string? name = Utils.get_name_by_value_from_enum (enumtype,
-                                                             val);
-            if (name == null) return null;
-            else return name.substring (prefix.length,
-                name.length - prefix.length);
-        }
+       }
 
     }
 

@@ -16,7 +16,7 @@ AM_PROG_CC_C_O
 LT_PREREQ([2.2.6])
 LT_INIT([disable-static])
 
-AM_PROG_VALAC([0.15.0])
+AM_PROG_VALAC([0.26.0])
 
 AC_SUBST(CFLAGS)
 AC_SUBST(CPPFLAGS)
@@ -57,10 +57,11 @@ dnl ******************
 dnl * Check for libs
 dnl ******************
 GLIB_REQUIRED=2.32.0
-GST_REQUIRED=1.0
+GST_REQUIRED=1.4.0
 GEE_REQUIRED=0.8.0
 SQLITE_REQUIRED=3.4
-GST_RTSP_SERVER_REQUIRED=0.11.90
+GST_RTSP_SERVER_REQUIRED=1.4.0
+GST_MPEGTS_REQUIRED=1.4.0
 
 PKG_CHECK_MODULES(GST, gstreamer-1.0 >= $GST_REQUIRED
                        gstreamer-rtsp-1.0 >= $GST_REQUIRED)
@@ -72,7 +73,8 @@ PKG_CHECK_MODULES(GNOME_DVB_DAEMON, glib-2.0 >= $GLIB_REQUIRED
                             gobject-2.0 >= $GLIB_REQUIRED
                             gee-0.8 >= $GEE_REQUIRED
                             sqlite3 >= $SQLITE_REQUIRED
-                            gstreamer-rtsp-server-1.0 >= $GST_RTSP_SERVER_REQUIRED)
+                            gstreamer-rtsp-server-1.0 >= $GST_RTSP_SERVER_REQUIRED
+                            gstreamer-mpegts-1.0 >= $GST_MPEGTS_REQUIRED)
 AC_SUBST(GNOME_DVB_DAEMON_CFLAGS)
 AC_SUBST(GNOME_DVB_DAEMON_LIBS)
 
@@ -97,7 +99,7 @@ AC_ARG_ENABLE([totem-plugin],
 	AS_HELP_STRING([--enable-totem-plugin], [Install the Totem plugin (default: no)]),
 	[enable_totem=$enableval],
 	[enable_totem=no])
-	
+
 AM_CONDITIONAL(ENABLE_TOTEM, test "x$enable_totem" = "xyes")
 
 AC_ARG_WITH([totem-plugin-dir],
@@ -111,8 +113,8 @@ if test "x$enable_totem" = "xyes"; then
 			AC_MSG_ERROR(
 			[
 
-	*** Could not determinate totem plugin directory. 
-	
+	*** Could not determinate totem plugin directory.
+
 	Please make sure totem is installed or set the directory
 	manually using --with-totem-plugin-dir
 			])

@@ -163,14 +163,14 @@ class ChannelScanPage(BasePage):
     def get_selected_channel_sids(self):
         return [row[self.COL_SID] for row in self.tvchannels if row[self.COL_ACTIVE]]
 
-    def start_scanning(self, adapter, frontend, tuning_data):
+    def start_scanning(self, adapter, frontend, type, tuning_data):
         def data_loaded(proxy, success, user_data):
             if success:
                 self._scanner.run()
             else:
                 self._scanner.destroy()
 
-        self._scanner = self._model.get_scanner_for_device(adapter, frontend)
+        self._scanner = self._model.get_scanner_for_device(adapter, frontend, type)
         if self._scanner == None:
             return
 

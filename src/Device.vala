@@ -19,19 +19,20 @@
 
 using GLib;
 using Gst;
+using Gee;
 using DVB.Logging;
 
 namespace DVB {
 
     public errordomain DeviceError {
-    	UNKNOWN_TYPE
+        UNKNOWN_TYPE
     }
 
     public enum AdapterType {
         UNKNOWN,
-        DVB_T,
-        DVB_S,
-        DVB_C
+        TERRESTRIAL,
+        SATELLITE,
+        CABLE
     }
 
     public class Device : GLib.Object {
@@ -42,67 +43,57 @@ namespace DVB {
 
         public uint Adapter { get; construct; }
         public uint Frontend { get; construct; }
-        public AdapterType Type {
-            get { return adapter_type; }
-        }
-        public string Name {
-            get { return adapter_name; }
-        }
-        public ChannelList Channels { get; set; }
-        public File RecordingsDirectory { get; set; }
 
-        private string adapter_name;
-        private AdapterType adapter_type;
+        /* Device Path i.e. /dev/dvb/adapter0/frontend0 */
+        public string DevFile { get; private set; }
+
+        /* unified ID */
+        public string UID { get; private set; }
+
+        public string Name { get; private set; }
+
+        private ArrayList<DvbSrcDelsys> delsys;
 
         public Device (uint adapter, uint frontend) {
             base (Adapter: adapter, Frontend: frontend);
+            setAdapterTypeAndName(adapter, frontend);
         }
 
-        public static Device new_set_type (uint adapter, uint frontend,
-            File channels_conf, File recordings_dir, string name, AdapterType type) {
-            Device dev = new Device (adapter, frontend);
-            dev.adapter_name = name;
-            dev.adapter_type = type;
-            dev.RecordingsDirectory = recordings_dir;
-            dev.Channels = new ChannelList (channels_conf);
+        public Device.with_udev (GUdev.Device device, string dev_file,
+                uint adapter, uint frontend) {
+            base(Adapter: adapter, Frontend: frontend);
+            setAdapterTypeAndName(adapter, frontend);
 
-            return dev;
-        }
+            GUdev.Device parent = device.get_parent ();
+            string name = this.Name;
 
-        public static Device new_with_type (uint adapter, uint frontend) {
-        	var device = new Device (adapter, frontend);
+            string tmp = parent.get_property ("ID_MODEL_FROM_DATABASE");
+            tmp += ": " + name;
+            this.Name = tmp;
+            log.debug("Adding Device: %s", tmp);
+            this.DevFile = dev_file;
 
-            device.setAdapterTypeAndName(adapter, frontend);
-
-            return device;
-        }
-
-        public static Device? new_full (uint adapter, uint frontend,
-                File channels_conf, File recordings_dir)
-                throws DeviceError
-        {
-            Device device = Device.new_with_type (adapter, frontend);
-
-            /* The type of the device is checked in creation of
-             * Device class. If the device does not exist the type
-             * will be AdapterType.UNKNOWN
-             */
-            if (device.Type == AdapterType.UNKNOWN)
-                throw new DeviceError.UNKNOWN_TYPE (
-                    "device %u,%u has unknown type", adapter, frontend);
-
-            device.RecordingsDirectory = recordings_dir;
-
-            device.Channels = new ChannelList (channels_conf);
-
-            return device;
+            /* Generating UID */
+            if (parent.get_subsystem () == "pci") {
+                /* UID from PCI */
+                string uid = parent.get_property("PCI_SLOT_NAME");
+                uid += ":" + parent.get_property("PCI_SUBSYS_ID");
+                uid += ":" + name;
+                log.debug("UID: %s", uid);
+                this.UID = uid;
+            } else if (parent.get_subsystem () == "usb") {
+                string uid = parent.get_property("ID_SERIAL");
+                uid += ":" + name;
+                log.debug("UID: %s", uid);
+                this.UID = uid;
+            }
         }
 
         public static bool equal (Device dev1, Device dev2) {
             if (dev1 == null || dev2 == null) return false;
 
             return (dev1.Adapter == dev2.Adapter
-                    && dev2.Frontend == dev2.Frontend);
+                    && dev1.Frontend == dev2.Frontend);
         }
 
         public static uint hash (Device device) {
@@ -113,6 +104,109 @@ namespace DVB {
 
         public static uint hash_without_device (uint adapter, uint frontend) {
             return 2 * PRIME + PRIME * adapter + frontend;
+        }
+
+        public bool isTerrestrial () {
+            foreach (DvbSrcDelsys delsys in this.delsys) {
+                switch (delsys) {
+                    case DvbSrcDelsys.SYS_DVBT:
+                    case DvbSrcDelsys.SYS_DVBT2:
+                    case DvbSrcDelsys.SYS_DVBH:
+                    case DvbSrcDelsys.SYS_ATSC:
+                    case DvbSrcDelsys.SYS_ATSCMH:
+                    case DvbSrcDelsys.SYS_ISDBT:
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
+        }
+
+        public bool isCable () {
+             foreach (DvbSrcDelsys delsys in this.delsys) {
+                switch (delsys) {
+                    case DvbSrcDelsys.SYS_DVBC_ANNEX_A:
+                    case DvbSrcDelsys.SYS_DVBC_ANNEX_B:
+                    case DvbSrcDelsys.SYS_DVBC_ANNEX_C:
+                    case DvbSrcDelsys.SYS_ISDBC:
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
+        }
+
+        public bool isSatellite () {
+            bool ret = false;
+            foreach (DvbSrcDelsys delsys in this.delsys) {
+                switch (delsys) {
+                   case DvbSrcDelsys.SYS_DVBS:
+                   case DvbSrcDelsys.SYS_DVBS2:
+                   case DvbSrcDelsys.SYS_ISDBS:
+                   case DvbSrcDelsys.SYS_DSS:
+                   case DvbSrcDelsys.SYS_TURBO:
+                       return true;
+                   default:
+                       break;
+                }
+            }
+            return ret;
+        }
+
+        public bool isDVB () {
+            foreach (DvbSrcDelsys delsys in this.delsys) {
+                switch (delsys) {
+                    case DvbSrcDelsys.SYS_DVBT:
+                    case DvbSrcDelsys.SYS_DVBT2:
+                    case DvbSrcDelsys.SYS_DVBS:
+                    case DvbSrcDelsys.SYS_DVBS2:
+                    case DvbSrcDelsys.SYS_DVBC_ANNEX_A:
+                    case DvbSrcDelsys.SYS_DVBC_ANNEX_C:
+                    case DvbSrcDelsys.SYS_DVBH:
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
+        }
+
+        public bool isATSC () {
+            foreach (DvbSrcDelsys delsys in this.delsys) {
+                switch (delsys) {
+                    case DvbSrcDelsys.SYS_DVBC_ANNEX_B:
+                    case DvbSrcDelsys.SYS_ATSC:
+                    case DvbSrcDelsys.SYS_ATSCMH:
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
+        }
+
+        public bool isISDB () {
+            foreach (DvbSrcDelsys delsys in this.delsys) {
+                switch (delsys) {
+                    case DvbSrcDelsys.SYS_ISDBT:
+                    case DvbSrcDelsys.SYS_ISDBC:
+                    case DvbSrcDelsys.SYS_ISDBS:
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
+        }
+
+        public bool isDelsys (DvbSrcDelsys delsys) {
+            foreach (DvbSrcDelsys d in this.delsys) {
+                if (d == delsys)
+                    return true;
+            }
+            return false;
         }
 
         public bool is_busy () {
@@ -157,6 +251,7 @@ namespace DVB {
                 log.error ("Could not create dvbsrc element");
                 return false;
             }
+
             dvbsrc.set ("adapter", adapter);
             dvbsrc.set ("frontend", frontend);
 
@@ -167,7 +262,7 @@ namespace DVB {
             Gst.Bus bus = pipeline.get_bus();
 
             bool success = false;
-            string adapter_type = null;
+            this.delsys = new ArrayList<DvbSrcDelsys> ();
 
             while (bus.have_pending()) {
                 Message msg = bus.pop();
@@ -176,8 +271,63 @@ namespace DVB {
                     weak Structure structure = msg.get_structure ();
 
                     if (structure.get_name() == "dvb-adapter") {
-                        adapter_type = "%s".printf (structure.get_string("type"));
-                        this.adapter_name = "%s".printf (structure.get_string("name"));
+
+                        this.Name = "%s".printf (structure.get_string("name"));
+
+                        if (structure.has_field("dvb-c-a"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBC_ANNEX_A);
+
+                        if (structure.has_field("dvb-c-b"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBC_ANNEX_B);
+
+                        if (structure.has_field("dvb-t"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBT);
+
+                        if (structure.has_field("dss"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DSS);
+
+                        if (structure.has_field("dvb-s"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBS);
+
+                        if (structure.has_field("dvb-s2"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBS2);
+
+                        if (structure.has_field("dvb-h"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBH);
+
+                        if (structure.has_field("isdb-t"))
+                            this.delsys.add (DvbSrcDelsys.SYS_ISDBT);
+
+                        if (structure.has_field("isdb-s"))
+                            this.delsys.add (DvbSrcDelsys.SYS_ISDBS);
+
+                        if (structure.has_field("isdb-c"))
+                            this.delsys.add (DvbSrcDelsys.SYS_ISDBC);
+
+                        if (structure.has_field("atsc"))
+                            this.delsys.add (DvbSrcDelsys.SYS_ATSC);
+
+                        if (structure.has_field("atsc-mh"))
+                            this.delsys.add (DvbSrcDelsys.SYS_ATSCMH);
+
+                        if (structure.has_field("dtmb"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DTMB);
+
+                        if (structure.has_field("cmmb"))
+                            this.delsys.add (DvbSrcDelsys.SYS_CMMB);
+
+                        if (structure.has_field("dab"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DAB);
+
+                        if (structure.has_field("dvb-t2"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBT2);
+
+                        if (structure.has_field("turbo"))
+                            this.delsys.add (DvbSrcDelsys.SYS_TURBO);
+
+                        if (structure.has_field("dvb-c-c"))
+                            this.delsys.add (DvbSrcDelsys.SYS_DVBC_ANNEX_C);
+
                         success = true;
                         break;
                     }
@@ -191,22 +341,7 @@ namespace DVB {
 
             pipeline.set_state(State.NULL);
 
-            this.adapter_type = get_type_from_string (adapter_type);
-
             return success;
         }
-
-        public static AdapterType get_type_from_string (string? adapter_type) {
-            if (adapter_type == null)
-                return AdapterType.UNKNOWN;
-
-            AdapterType type;
-            if (adapter_type == "DVB-T") type = AdapterType.DVB_T;
-            else if (adapter_type == "DVB-S") type = AdapterType.DVB_S;
-            else if (adapter_type == "DVB-C") type = AdapterType.DVB_C;
-            else type = AdapterType.UNKNOWN;
-            return type;
-        }
     }
-
 }

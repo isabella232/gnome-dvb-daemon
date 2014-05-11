@@ -117,7 +117,7 @@ class SetupDevicePage(BasePage):
                 recordings_dir = gnomedvb.get_default_recordings_dir()
                 name = DVB_TYPE_TO_TV_DESC[self.__adapter_info["type"]]
                 self.__model.add_device_to_new_group(self.__adapter_info['adapter'],
-                                self.__adapter_info['frontend'], channels_file,
+                                self.__adapter_info['frontend'], self.__adapter_info['type'], channels_file,
                                 recordings_dir, name,
                                 result_handler=result_handler, error_handler=error_handler)
             else:

@@ -36,14 +36,6 @@ namespace DVB {
         private static const string STREAMING_SECTION = "streaming";
         private static const string INTERFACE = "interface";
 
-        private static const string DEVICE_SECTION_PREFIX = "device.";
-        private static const string DEVICE_NAME = "name";
-        private static const string DEVICE_TYPE = "type";
-        private static const string DEVICE_ADAPTER = "adapter";
-        private static const string DEVICE_FRONTEND = "frontend";
-        private static const string DEVICE_CHANNELS_FILE = "channels_file";
-        private static const string DEVICE_RECORDINGS_DIR = "recordings_dir";
-
         private static const int DEFAULT_MARGIN_START = 5;
         private static const int DEFAULT_MARGIN_END = 5;
         private static const int DEFAULT_SCAN_INTERVAL = 30;
@@ -106,37 +98,6 @@ namespace DVB {
                 val = DEFAULT_INTERFACE;
             }
             return val;
-        }
-
-        public Gee.List<Device> get_fake_devices () {
-            Gee.List<Device> devices = new Gee.ArrayList<Device> ();
-            string[] groups = this.keyfile.get_groups ();
-            foreach (string group in groups) {
-                if (group.has_prefix (DEVICE_SECTION_PREFIX)) {
-                    try {
-                        Device dev = this.get_device (group);
-                        devices.add (dev);
-                    } catch (KeyFileError e) {
-                        log.warning ("%s", e.message);
-                    }
-                }
-            }
-            return devices;
-        }
-
-        private Device get_device (string group) throws KeyFileError {
-            string name = this.get_string (group, DEVICE_NAME);
-            int adapter = this.get_integer (group, DEVICE_ADAPTER);
-            int frontend = this.get_integer (group, DEVICE_FRONTEND);
-
-            string typestr = this.get_string (group, DEVICE_TYPE);
-            AdapterType type = Device.get_type_from_string (typestr);
-
-            File channels = File.new_for_path (this.get_string (group, DEVICE_CHANNELS_FILE));
-            File rec_dir = File.new_for_path (this.get_string (group, DEVICE_RECORDINGS_DIR));
-
-            return Device.new_set_type (adapter, frontend, channels, rec_dir,
-                name, type);
         }
 
         public File get_settings_file () {

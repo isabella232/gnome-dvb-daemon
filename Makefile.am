@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-NULL = 
+NULL =
 
 SUBDIRS = \
 	client \
@@ -11,12 +11,9 @@ SUBDIRS = \
 bin_PROGRAMS = gnome-dvb-daemon
 
 gnome_dvb_daemon_SOURCES = \
-	src/Cable/CableChannel.vala \
-	src/Cable/CableScanner.vala \
-	src/Satellite/SatelliteChannel.vala \
-	src/Satellite/SatelliteScanner.vala \
-	src/Terrestrial/TerrestrialChannel.vala \
-	src/Terrestrial/TerrestrialScanner.vala \
+	src/Parameters/DvbCEuropeParameter.vala \
+	src/Parameters/DvbSParameter.vala \
+	src/Parameters/DvbTParameter.vala \
 	src/database/sqlite/SqliteDatabase.vala \
 	src/database/sqlite/SqliteUtils.vala \
 	src/database/sqlite/SqliteConfigTimersStore.vala \
@@ -36,6 +33,7 @@ gnome_dvb_daemon_SOURCES = \
 	src/io/ChannelListWriter.vala \
 	src/io/RecordingReader.vala \
 	src/io/RecordingWriter.vala \
+	src/io/ScanningListReader.vala \
 	src/ChangeType.vala \
 	src/Channel.vala \
 	src/ChannelFactory.vala \
@@ -57,7 +55,7 @@ gnome_dvb_daemon_SOURCES = \
 	src/Recording.vala \
 	src/RecordingsStore.vala \
 	src/Scanner.vala \
-	src/ScannedItem.vala \
+	src/Parameter.vala \
 	src/Schedule.vala \
 	src/Settings.vala \
 	src/Timer.vala \
@@ -73,14 +71,16 @@ vala_pkgs = \
 	--pkg gstreamer-1.0 \
 	--pkg gee-0.8 \
 	--pkg sqlite3 \
+	--pkg gstreamer-rtsp-1.0 \
 	--pkg gstreamer-rtsp-server-1.0 \
+	--pkg gstreamer-mpegts-1.0 \
 	--pkg gudev-1.0 \
 	$(NULL)
-    
+
 own_pkgs = \
 	--pkg config \
 	--pkg cutils
-	
+
 gnome_dvb_daemon_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
@@ -129,7 +129,7 @@ DISTCLEANFILES = \
 	intltool-merge \
 	po/.intltool-merge-cache \
 	$(NULL)
-	
+
 dist-hook:
 	@if test -d "$(srcdir)/.git"; \
 		then \

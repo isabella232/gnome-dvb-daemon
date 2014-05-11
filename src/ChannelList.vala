@@ -94,8 +94,8 @@ namespace DVB {
         }
 
         public void load (AdapterType type) throws Error {
-        	var reader = new DVB.io.ChannelListReader (this, type);
-        	reader.read_into ();
+            var reader = new DVB.io.ChannelListReader (this, type);
+            reader.read_into ();
         }
 
         /**
@@ -267,11 +267,11 @@ namespace DVB {
             return channels;
         }
 
-		/**
+        /**
          * @channel_group_id: ID of the ChannelGroup
          * @returns: TRUE on success
          */
-		public bool GetChannelsOfGroup (int channel_group_id,
+        public bool GetChannelsOfGroup (int channel_group_id,
                 out uint[] channel_ids) throws DBusError
         {
             ConfigStore config = new Factory().get_config_store ();
@@ -293,12 +293,12 @@ namespace DVB {
             return true;
         }
 
-		/**
+        /**
          * @channel_id: ID of channel
-	     * @channel_group_id: ID of the ChannelGroup
+         * @channel_group_id: ID of the ChannelGroup
          * @returns: TRUE on success
          */
-		public bool AddChannelToGroup (uint channel_id, int channel_group_id)
+        public bool AddChannelToGroup (uint channel_id, int channel_group_id)
                 throws DBusError
         {
             ConfigStore config = new Factory().get_config_store ();
@@ -316,12 +316,12 @@ namespace DVB {
             return ret;
         }
 
- 		/**
-		 * @channel_id: ID of channel
-	     * @channel_group_id: ID of the ChannelGroup
+        /**
+         * @channel_id: ID of channel
+         * @channel_group_id: ID of the ChannelGroup
          * @returns: TRUE on success
          */
-		public bool RemoveChannelFromGroup (uint channel_id,
+        public bool RemoveChannelFromGroup (uint channel_id,
                 int channel_group_id) throws DBusError
         {
             ConfigStore config = new Factory().get_config_store ();

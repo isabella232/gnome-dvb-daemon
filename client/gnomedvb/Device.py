@@ -29,15 +29,23 @@ class Device:
         self.type = devtype
 
     def __hash__(self):
-        return 2 * PRIME + PRIME * self.adapter + self.frontend
+        return PRIME * PRIME * self.type + PRIME * self.adapter + self.frontend
 
     def __eq__(self, other):
         if not isinstance(other, Device):
             return False
 
         return (self.adapter == other.adapter \
-            and self.frontend == other.frontend)
+            and self.frontend == other.frontend \
+            and self.type == other.type)
+
+    def __ne__(self, other):
+        if not isinstance(other, Device):
+            return True
+
+        return (self.adapter != other.adapter \
+            or self.frontend != other.frontend \
+            or self.type != other.type)
 
     def __repr__(self):
-        return "/dev/dvb/adapter%d/frontend%d" % (self.adapter, self.frontend)
-
+        return "/dev/dvb/adapter%d/frontend%d/%d" % (self.adapter, self.frontend, self.type)

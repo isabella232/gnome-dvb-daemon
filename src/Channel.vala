@@ -18,10 +18,11 @@
  */
 
 using GLib;
+using GstMpegTs;
 
 namespace DVB {
 
-    public abstract class Channel : GLib.Object {
+    public class Channel : GLib.Object {
 
         public uint Sid {
             get { return this.sid; }
@@ -33,14 +34,16 @@ namespace DVB {
                 }
             }
         }
+        /* delivery system depending settings */
+        public Parameter Param { get; set; }
         public uint GroupId {get; construct;}
         public string Name {get; set;}
+        public DVBServiceType ServiceType { get; set; }
         public uint TransportStreamId {get; set;}
         public string Network {get; set;}
         public uint? LogicalChannelNumber {get; set;}
         public uint VideoPID {get; set;}
         public Gee.List<uint> AudioPIDs {get; set;}
-        public uint Frequency {get; set;}
         public bool Scrambled {get; set;}
         public DVB.Schedule Schedule {
             get { return this.schedule; }
@@ -88,8 +91,8 @@ namespace DVB {
             return (this.VideoPID == 0);
         }
 
-        public virtual bool is_valid () {
-            return (this.Name != null && this.Frequency != 0&& this.Sid != 0
+        public bool is_valid () {
+            return (this.Name != null && this.Param.Frequency != 0 && this.Sid != 0
                 && (this.VideoPID != 0 || this.AudioPIDs.size != 0));
         }
 
@@ -100,14 +103,15 @@ namespace DVB {
          * Channels that are part of the same TS can be viewed/recorded
          * at the same time with a single device.
          */
-        public virtual bool on_same_transport_stream (Channel channel) {
-            return (this.Frequency == channel.Frequency);
+        public bool on_same_transport_stream (Channel channel) {
+  //          return (this.TransportStreamId == channel.TransportStreamId);
+            return (this.Param.Frequency == channel.Param.Frequency);
         }
 
         /**
          * @returns: TRUE of both channels are identical
          */
-        public virtual bool equals (Channel channel) {
+        public bool equals (Channel channel) {
             return (this.sid == channel.Sid);
         }
 
@@ -116,8 +120,14 @@ namespace DVB {
          *
          * Set properties of source so that the channel can be watched
          */
-        public abstract void setup_dvb_source (Gst.Element source);
-        public abstract string to_string ();
+        public void setup_dvb_source (Gst.Element source) {
+            this.Param.prepare (source);
+        }
+
+        public string to_string () {
+            return this.Param.to_string () + ":%s:%s:%u:%u:%s".printf(this.Name,
+                this.Network, this.Sid, this.VideoPID, get_audio_pids_string ());
+        }
     }
 
 }

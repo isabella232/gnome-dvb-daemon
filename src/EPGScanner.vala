@@ -20,6 +20,7 @@
 using GLib;
 using Gee;
 using DVB.Logging;
+using GstMpegTs;
 
 namespace DVB {
 
@@ -36,7 +37,7 @@ namespace DVB {
         private static const string PIPELINE_TEMPLATE =
         "dvbsrc name=dvbsrc adapter=%u frontend=%u pids=0:16:17:18 stats-reporting-interval=0 ! tsparse ! fakesink silent=true";
 
-        private unowned DVB.DeviceGroup DeviceGroup;
+        private DVB.DeviceGroup DeviceGroup;
 
         private Gst.Element? pipeline;
         private GLib.Queue<Channel> channels;
@@ -148,7 +149,7 @@ namespace DVB {
             // clear doesn't unref for us so we do this instead
             Channel c;
             while ((c = this.channels.pop_head ()) != null) {
-                // Vala unref's Channel instances for us
+            // Vala unref's Channel instances for us
             }
             this.channels.clear ();
             this.channel_events.clear ();
@@ -191,9 +192,13 @@ namespace DVB {
          * Scan the next frequency for EPG data
          */
         private bool scan_new_frequency () {
+            ChannelList clist = this.DeviceGroup.Channels;
+            if (clist == null)
+                return false;
+
             lock (this.channel_events) {
                 foreach (uint sid in this.channel_events.keys) {
-                    Channel channel = this.DeviceGroup.Channels.get_channel (sid);
+                    Channel channel = clist.get_channel (sid);
                     if (channel == null) {
                         warning ("Could not find channel %u for this device", sid);
                         continue;
@@ -238,14 +243,17 @@ namespace DVB {
         private bool bus_watch_func (Gst.Bus bus, Gst.Message message) {
             switch (message.type) {
                 case Gst.MessageType.ELEMENT:
-                    unowned Gst.Structure structure = message.get_structure ();
-                    if (structure.get_name() == "dvb-read-failure") {
-                        log.warning ("Could not read from DVB device");
-                    } else if (structure.get_name() == "eit") {
-                        this.on_eit_structure (structure);
-                    }
-                break;
+                    Section section = message_parse_mpegts_section (message);
 
+                    if (section == null) {
+                        unowned Gst.Structure structure = message.get_structure ();
+                        if (structure.get_name() == "dvb-read-failure") {
+                            log.warning ("Could not read from DVB device");
+                        }
+                    } else if (section.section_type == SectionType.EIT) {
+                        this.on_eit_structure (section);
+                    }
+                    break;
                 case Gst.MessageType.ERROR:
                     Error gerror;
                     string debug;
@@ -265,107 +273,248 @@ namespace DVB {
             return true;
         }
 
-        public void on_eit_structure (Gst.Structure structure) {
-            Value events = structure.get_value ("events");
+        public void on_eit_structure (Section section) {
 
-            if (!events.holds (typeof(Gst.ValueList)))
-                return;
+            unowned EIT eit = section.get_eit();
 
-            uint size = Gst.ValueList.get_size (events);
-            Value val;
-            weak Gst.Structure event;
-            // Iterate over events
             lock (this.channel_events) {
-                uint sid = get_uint_val (structure, "service-id");
+                uint sid = section.subtable_extension;
+
                 if (!this.channel_events.has_key (sid)) {
                     this.channel_events.set (sid,
                         new HashSet<Event> (Event.hash, Event.equal));
                 }
                 HashSet<Event> list = this.channel_events.get (sid);
 
-                for (uint i=0; i<size; i++) {
-                    val = Gst.ValueList.get_value (events, i);
-                    event = Gst.Value.get_structure (val);
-
+                EITEvent event;
+                uint len = eit.events.length;
+                for (uint i = 0; i < len; i++) {
+                    event = eit.events.@get(i);
                     var event_class = new Event ();
-                    event_class.id = get_uint_val (event, "event-id");
-                    event_class.year = get_uint_val (event, "year");
-                    event_class.month = get_uint_val (event, "month");
-                    event_class.day = get_uint_val (event, "day");
-                    event_class.hour = get_uint_val (event, "hour");
-                    event_class.minute = get_uint_val (event, "minute");
-                    event_class.second = get_uint_val (event, "second");
-                    event_class.duration = get_uint_val (event, "duration");
+
+                    event_class.id = event.event_id;
+                    event_class.year = event.start_time.get_year ();
+                    event_class.month = event.start_time.get_month ();
+                    event_class.day = event.start_time.get_day ();
+                    event_class.hour = event.start_time.get_hour ();
+                    event_class.minute = event.start_time.get_minute ();
+                    event_class.second = event.start_time.get_second ();
+                    event_class.duration = event.duration;
 
                     if (event_class.has_expired ())
                         continue;
 
-                    event_class.running_status = get_uint_val (event, "running-status");
-                    string name = event.get_string ("name");
-                    if (name != null && name.validate ())
-                        event_class.name = name;
-                    string desc = event.get_string ("description");
-                    if (desc != null && desc.validate ())
-                        event_class.description = desc;
-                    string ext_desc = event.get_string ("extended-text");
-                    if (ext_desc != null && ext_desc.validate ())
-                        event_class.extended_description = ext_desc;
-                    bool free_ca;
-                    event.get_boolean ("free-ca-mode", out free_ca);
-                    event_class.free_ca_mode = free_ca;
-/*
-                    Value components = event.get_value ("components");
-                    add_components (components, event_class);
-*/
-                    //log.debug ("Adding new event: %s", event_class.to_string ());
+                    event_class.running_status = event.running_status;
+                    event_class.free_ca_mode = event.free_CA_mode;
 
+                    Descriptor desc;
+                    for (uint j = 0 ;j < event.descriptors.length; j++) {
+                         desc = event.descriptors.@get (j);
+
+                         switch (desc.tag) {
+                            case DVBDescriptorType.SHORT_EVENT:
+                                string lang;
+                                desc.parse_dvb_short_event ( out lang,
+                                out event_class.name,
+                                out event_class.description);
+                                break;
+                            case DVBDescriptorType.EXTENDED_EVENT:
+                                var ex_desc = ExtendedEventDescriptor();
+
+                                if (!desc.parse_dvb_extended_event (out ex_desc))
+                                    log.debug ("Failed parse extended Event");
+
+                                var builder = new StringBuilder ();
+                                if (event_class.extended_description != null)
+                                    builder.append (event_class.extended_description);
+                                builder.append (ex_desc.text);
+                                event_class.extended_description = builder.str;
+
+                                break;
+                            case DVBDescriptorType.COMPONENT:
+                                var comp = ComponentDescriptor();
+
+                                desc.parse_dvb_component(out comp);
+
+                                decode_component (comp, event_class);
+                                break;
+                            case DVBDescriptorType.CONTENT:
+                                GenericArray<Content?> conts;
+
+                                desc.parse_dvb_content(out conts);
+                                if (conts.length != 0) {
+                                    for (uint k = 0; k < conts.length; k++) {
+                                        Content cont = conts.@get(k);
+                                        log.debug ("0x%01x, 0x%01x, 0x%02x",
+                                            cont.content_nibble_1,
+                                            cont.content_nibble_2,
+                                            cont.user_byte);
+                                    }
+                                }
+                                break;
+                            default:
+                                log.debug ("Unkown descriptor: 0x%02x",
+                                    desc.tag);
+                                break;
+                        }
+
+                    }
+
+                    log.debug ("Adding new event: %s", event_class.to_string ());
                     list.add (event_class);
+
                 }
             }
         }
-/*
-        private static void add_components (Value components, Event event_class) {
-            uint components_len = components.list_get_size ();
 
-            Value comp_val;
-            weak Gst.Structure component;
-            for (uint j=0; j<components_len; j++) {
-                comp_val = components.list_get_value (j);
-                component = comp_val.get_structure ();
+        private static void decode_component (ComponentDescriptor comp, Event event_class)
+        {
 
-                string comp_name = component.get_name ();
-                if (comp_name == "audio") {
-                    var audio = new Event.AudioComponent ();
-                    audio.type = component.get_string ("type");
-
-                    event_class.audio_components.append (audio);
-                } else if (comp_name == "video") {
+            switch (comp.stream_content) {
+                case 0x01:
+                case 0x05:
                     var video = new Event.VideoComponent ();
 
-                    bool highdef;
-                    component.get_boolean ("high-definition", out highdef);
-                    video.high_definition = highdef;
+                    /* hd flag */
+                    switch (comp.component_type) {
+                        case 0x09:
+                        case 0x0a:
+                        case 0x0b:
+                        case 0x0c:
+                        case 0x0d:
+                        case 0x0e:
+                        case 0x0f:
+                        case 0x10:
+                        case 0x80:
+                        case 0x81:
+                        case 0x82:
+                        case 0x83:
+                        case 0x84:
+                            video.has_hd = true;
+                            break;
+                        default:
+                            video.has_hd = false;
+                            break;
+                    }
 
-                    video.aspect_ratio = component.get_string ("aspect-ratio");
+                    /* 3d flag */
+                    switch (comp.component_type) {
+                        case 0x80:
+                        case 0x81:
+                        case 0x82:
+                        case 0x83:
+                        case 0x84:
+                            video.has_3d = true;
+                            break;
+                        default:
+                            video.has_3d = false;
+                            break;
+                    }
 
-                    int freq;
-                    component.get_int ("frequency", out freq);
-                    video.frequency = freq;
+                    /* aspect radio
+                       passible value are
+                       4:3, 16:9, 2.21:1
+                    */
+                    switch (comp.component_type) {
+                        case 0x01:
+                        case 0x05:
+                        case 0x09:
+                        case 0x0d:
+                            video.aspect_ratio = "4:3";
+                            break;
+                        case 0x02:
+                        case 0x06:
+                        case 0x0a:
+                        case 0x0e:
+                            video.aspect_ratio = "16:9 with pan";
+                            break;
+                        case 0x03:
+                        case 0x07:
+                        case 0x0b:
+                        case 0x0f:
+                        case 0x80:
+                        case 0x81:
+                        case 0x82:
+                        case 0x83:
+                        case 0x84:
+                            video.aspect_ratio = "16:9";
+                            break;
+                        case 0x04:
+                        case 0x08:
+                        case 0x0c:
+                        case 0x10:
+                            video.aspect_ratio = "2.21:1";
+                            break;
+                        default:
+                            video.aspect_ratio = "unknown";
+                            break;
+                        }
 
-                    event_class.video_components.append (video);
-                } else if (comp_name == "teletext") {
-                    var teletext = new Event.TeletextComponent ();
-                    teletext.type = component.get_string ("type");
+                        switch (comp.component_type) {
+                            case 0x05:
+                            case 0x06:
+                            case 0x07:
+                            case 0x08:
+                            case 0x0d:
+                            case 0x0e:
+                            case 0x0f:
+                            case 0x10:
+                            case 0x82:
+                            case 0x83:
+                                video.frequency = 30;
+                                break;
+                            default:
+                                video.frequency = 25;
+                                break;
+                        }
+                        if (comp.stream_content == 0x01)
+                            video.content = "MPEG-2";
+                        else
+                            video.content = "AVC/MVC";
+                        video.type = comp.component_type.to_string("0x%02x");
+                        video.tag = comp.component_tag;
+                        video.text = comp.text;
+                        event_class.video_component =  video;
+                        break;
+                    case 0x02:
+                    case 0x04:
+                    case 0x06:
+                    case 0x07:
+                        var audio = new Event.AudioComponent ();
 
-                    event_class.teletext_components.append (teletext);
-                }
-            }
+                        switch (comp.stream_content) {
+                            case 0x02:
+                                audio.content = "MPEG-1 Layer 2";
+                                break;
+                            case 0x04:
+                                audio.content = "AC-3";
+                                break;
+                            case 0x06:
+                                audio.content = "HE-AAC/HE-AACv2";
+                                break;
+                            case 0x07:
+                                audio.content = "DTS";
+                                break;
+                        }
+
+                        audio.type = comp.component_type.to_string("0x%02x");
+                        audio.tag = comp.component_tag;
+                        audio.text = comp.text;
+                        audio.language = comp.language_code;
+                        event_class.audio_components.append (audio);
+                        break;
+                    case 0x03:
+                        var teletext = new Event.TeletextComponent ();
+
+                        teletext.type = comp.component_type.to_string("0x%02x");
+                        teletext.tag = comp.component_tag;
+                        teletext.text = comp.text;
+                        event_class.teletext_components.append (teletext);
+                        break;
+                    default:
+                        break;
+              }
         }
-*/
-        private static uint get_uint_val (Gst.Structure structure, string name) {
-            uint val;
-            structure.get_uint (name, out val);
-            return val;
-        }
+
     }
 }

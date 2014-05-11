@@ -21,6 +21,7 @@ using GLib;
 using Gee;
 using DVB.database;
 using DVB.Logging;
+using GstMpegTs;
 
 namespace DVB {
 
@@ -833,9 +834,11 @@ namespace DVB {
             return val;
         }
 
-        private void on_eit_structure (PlayerThread player, Gst.Structure structure) {
-            uint sid;
-            structure.get_uint ("service-id", out sid);
+        private void on_eit_structure (PlayerThread player, Section section) {
+
+            uint sid = 0;
+
+            sid = section.subtable_extension;
 
             lock (this.recordings) {
                 // Find name and description for recordings

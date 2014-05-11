@@ -20,9 +20,14 @@ from gi.repository import GObject
 import gnomedvb
 from gi.repository import Gtk
 from gnomedvb import _
+from gnomedvb.Device import Device
+from gnomedvb import GROUP_TERRESTRIAL
+from gnomedvb import GROUP_SATELLITE
+from gnomedvb import GROUP_CABLE
 from gnomedvb.ui.wizard import DVB_TYPE_TO_DESC
 from gnomedvb.ui.wizard.pages.BasePage import BasePage
 from gnomedvb.ui.widgets.Frame import BaseFrame
+import copy
 
 class AdaptersPage(BasePage):
 
@@ -43,7 +48,7 @@ class AdaptersPage(BasePage):
         self.frame = None
 
         # Name, Type Name, Type, adapter, frontend, registered
-        self.deviceslist = Gtk.ListStore(str, str, str, int, int, bool)
+        self.deviceslist = Gtk.ListStore(str, str, int, int, int, bool)
 
     def show_no_devices(self):
         if self.frame:
@@ -176,14 +181,36 @@ class AdaptersPage(BasePage):
                     success, info = gnomedvb.get_adapter_info(dev.adapter,
                         dev.frontend)
                     if success:
-                        dev.name = info["name"]
-                        dev.type = info["type"]
-                        if info["type"] in DVB_TYPE_TO_DESC:
-                            dev.type_name = DVB_TYPE_TO_DESC[info["type"]]
-                        else:
-                            dev.type_name = info["type"]
-                        dev.registered = False
-                        unregistered.add(dev)
+                        if info["type_t"]:
+                            dev_t = copy.copy(dev)
+                            dev_t.name = info["name"]
+                            dev_t.type = GROUP_TERRESTRIAL
+                            if dev_t.type in DVB_TYPE_TO_DESC:
+                                dev_t.type_name = DVB_TYPE_TO_DESC[dev_t.type]
+                            else:
+                                dev_t.type_name = "Unknown"
+                            dev_t.registered = False
+                            unregistered.add(dev_t)
+                        if info["type_s"]:
+                            dev_s = copy.copy(dev)
+                            dev_s.name = info["name"]
+                            dev_s.type = GROUP_SATELLITE
+                            if dev_s.type in DVB_TYPE_TO_DESC:
+                                dev_s.type_name = DVB_TYPE_TO_DESC[dev_s.type]
+                            else:
+                                dev_s.type_name = "Unknown"
+                            dev_s.registered = False
+                            unregistered.add(dev_s)
+                        if info["type_c"]:
+                            dev_c = copy.copy(dev)
+                            dev_c.name = info["name"]
+                            dev_c.type = GROUP_CABLE
+                            if dev_c.type in DVB_TYPE_TO_DESC:
+                                dev_c.type_name = DVB_TYPE_TO_DESC[dev_c.type]
+                            else:
+                                dev_c.type_name = "Unknown"
+                            dev_c.registered = False
+                            unregistered.add(dev_c)
                     else:
                         error = info
 

@@ -38,6 +38,12 @@ INFOS = {
     "website-label" : _("GNOME DVB Daemon Website"),
 }
 
+# Group types
+GROUP_UNKNOWN = 0
+GROUP_TERRESTRIAL = 1
+GROUP_SATELLITE = 2
+GROUP_CABLE = 3
+
 # From pyxdg
 _home = os.environ.get('HOME', '/')
 XDG_CONFIG_HOME = os.environ.get('XDG_CONFIG_HOME', join(_home, '.config'))

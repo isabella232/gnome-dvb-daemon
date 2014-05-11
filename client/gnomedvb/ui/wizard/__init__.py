@@ -1,13 +1,16 @@
 from gnomedvb import _
+from gnomedvb import GROUP_TERRESTRIAL
+from gnomedvb import GROUP_SATELLITE
+from gnomedvb import GROUP_CABLE
 
 DVB_TYPE_TO_DESC = {
-    "DVB-C": _("digital cable"),
-    "DVB-S": _("digital satellite"),
-    "DVB-T": _("digital terrestrial")
+    GROUP_CABLE: _("digital cable"),
+    GROUP_SATELLITE: _("digital satellite"),
+    GROUP_TERRESTRIAL: _("digital terrestrial")
 }
 
 DVB_TYPE_TO_TV_DESC = {
-    "DVB-C": _("digital cable TV"),
-    "DVB-S": _("digital satellite TV"),
-    "DVB-T": _("digital terrestrial TV")
+    GROUP_CABLE: _("digital cable TV"),
+    GROUP_SATELLITE: _("digital satellite TV"),
+    GROUP_TERRESTRIAL: _("digital terrestrial TV")
 }

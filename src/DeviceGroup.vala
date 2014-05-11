@@ -35,20 +35,15 @@ namespace DVB {
         public int size {
             get { return this.devices.size; }
         }
+        public Set<Device> Devices {
+            get { return this.devices; }
+        }
         public uint Id {get; construct;}
-        public ChannelList Channels {
-            get { return this.reference_device.Channels; }
-        }
-        public File RecordingsDirectory {
-            get { return this.reference_device.RecordingsDirectory; }
-            set {
-                this.reference_device.RecordingsDirectory = value;
-                this.update_all_devices ();
-            }
-        }
-        public AdapterType Type {
-            get { return this.reference_device.Type; }
-        }
+        public ChannelList Channels { get; construct; }
+        public File RecordingsDirectory { get; set; }
+
+        public AdapterType Type { get; construct; }
+
         public Recorder recorder {
             get { return this._recorder; }
         }
@@ -59,12 +54,6 @@ namespace DVB {
             get { return this._channelfactory; }
         }
         public string Name {get; set;}
-
-        // All settings are copied from this one
-        public Device reference_device {
-            get;
-            construct set;
-        }
 
         private Set<Device> devices;
         private Recorder _recorder;
@@ -79,21 +68,20 @@ namespace DVB {
             this.schedules = new HashSet<string> (
                 Gee.Functions.get_hash_func_for(typeof(string)),
                 Gee.Functions.get_equal_func_for(typeof(string)));
-            this.devices.add (this.reference_device);
             this._channelfactory = new ChannelFactory (this);
             this._recorder = new Recorder (this);
         }
 
         /**
          * @id: ID of group
-         * @reference_device: All devices of this group will inherit
-         * the settings from this device
+         * @channels_conf: the channel list file name (dvbv5 format)
+         * @recordings_dir: directory in which the records are saved
+         * @type: the type of this group (terrestrial, cable, satellite)
          * @with_epg_scanner: Whether to provide an EPG scanner
          */
-        public DeviceGroup (uint id, Device reference_device,
+        public DeviceGroup (uint id, File channels_conf, File recordings_dir, AdapterType type,
                 bool with_epg_scanner=true) {
-            Object (Id: id, reference_device: reference_device);
-            this.reference_device.Channels.GroupId = id;
+            Object (Id: id, Channels: new ChannelList (channels_conf), RecordingsDirectory: recordings_dir, Type: type);
 
             if (with_epg_scanner) {
                 this._epgscanner = new EPGScanner (this);
@@ -126,45 +114,36 @@ namespace DVB {
         }
 
         /**
-         * @adapter: Number of the device's adapter
-         * @frontend: Number of the device's frontend
-         *
-         * Creates a new device first and adds it to the group.
-         * The new device inherits the settings from the reference
-         * device.
-         */
-        public void create_and_add_device (uint adapter, uint frontend) {
-            Device new_dev = Device.new_with_type (adapter, frontend);
-            this.add (new_dev);
-        }
-
-        /**
          * Add device to group. The device's settings will be overridden
          * with those of the reference device.
          */
         public bool add (Device device) {
-            if (device.Type != this.Type) {
-                warning ("Cannot add device, because it is not of same type");
-                return false;
+            switch (this.Type) {
+                case AdapterType.TERRESTRIAL:
+                   if (!device.isTerrestrial ()) {
+                       warning ("Cannot add device, because it is not of same type");
+                       return false;
+                   }
+                   break;
+                case AdapterType.SATELLITE:
+                   if (!device.isSatellite ()) {
+                       warning ("Cannot add device, because it is not of same type");
+                       return false;
+                   }
+                   break;
+                case AdapterType.CABLE:
+                   if (!device.isCable ()) {
+                       warning ("Cannot add device, because it is not of same type");
+                       return false;
+                   }
+                   break;
             }
 
             bool result;
             lock (this.devices) {
-                // Set settings from reference device
-                device.Channels = this.reference_device.Channels;
-                device.RecordingsDirectory = this.reference_device.RecordingsDirectory;
-
                 result = this.devices.add (device);
             }
             return result;
-        }
-
-        public bool add_and_emit (Device device) {
-            if (this.add (device)) {
-                this.device_added (device.Adapter, device.Frontend);
-                return true;
-            }
-            return false;
         }
 
         public bool contains (Device device) {
@@ -179,23 +158,8 @@ namespace DVB {
             bool result;
             lock (this.devices) {
                 result = this.devices.remove (device);
-                if (Device.equal (device, this.reference_device)) {
-                    foreach (Device dev in this.devices) {
-                        log.debug ("Assigning new reference device");
-                        this.reference_device = dev;
-                        break;
-                    }
-                }
             }
             return result;
-        }
-
-        public bool remove_and_emit (Device device) {
-            if (this.remove (device)) {
-                this.device_removed (device.Adapter, device.Frontend);
-                return true;
-            }
-            return false;
         }
 
         /**
@@ -220,15 +184,8 @@ namespace DVB {
          * @returns: Name of adapter type the group holds
          * or an empty string when group with given id doesn't exist.
          */
-        public string GetType () throws DBusError {
-            string type_str;
-            switch (this.Type) {
-                case AdapterType.DVB_T: type_str = "DVB-T"; break;
-                case AdapterType.DVB_S: type_str = "DVB-S"; break;
-                case AdapterType.DVB_C: type_str = "DVB-C"; break;
-                default: type_str = ""; break;
-            }
-            return type_str;
+        public AdapterType GetType () throws DBusError {
+            return this.Type;
         }
 
         /**
@@ -244,20 +201,20 @@ namespace DVB {
             // When the device is already registered we
             // might see some errors if the device is
             // currently in use
-            Device device = Device.new_with_type (adapter, frontend);
+            Manager manager = Manager.get_instance ();
+
+            Device device = manager.get_device (adapter, frontend);
 
             if (device == null) return false;
 
-            Manager manager = Manager.get_instance ();
-            if (manager.device_is_in_any_group (device)) {
+            if (manager.device_is_in_any_group (device, this.Type)) {
                 log.debug ("Device with adapter %u, frontend %u is" +
                     "already part of a group", adapter, frontend);
                 return false;
             }
 
-            uint group_id = this.Id;
             log.debug ("Adding device with adapter %u, frontend %u to group %u",
-                adapter, frontend, group_id);
+                adapter, frontend, this.Id);
 
             if (this.add (device)) {
                 try {
@@ -308,7 +265,11 @@ namespace DVB {
          * no devices after the removal it's removed as well.
          */
         public bool RemoveDevice (uint adapter, uint frontend) throws DBusError {
-            Device dev = new Device (adapter, frontend);
+            Manager m = Manager.get_instance ();
+
+            Device dev = m.get_device (adapter, frontend);
+
+            if (dev == null) return false;
 
             if (this.contains (dev)) {
                 if (this.remove (dev)) {
@@ -458,20 +419,6 @@ namespace DVB {
 
         public bool foreach (ForallFunc<Device> f) {
             return this.devices.iterator().foreach(f);
-        }
-
-        /**
-         * Set RecordingsDirectory property of all
-         * devices to the values of the reference device
-         */
-        private void update_all_devices () {
-            lock (this.devices) {
-                foreach (Device device in this.devices) {
-                    if (device != this.reference_device) {
-                        device.RecordingsDirectory = this.reference_device.RecordingsDirectory;
-                    }
-                }
-            }
         }
 
     }
