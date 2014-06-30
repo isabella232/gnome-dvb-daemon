@@ -213,7 +213,7 @@ namespace Main {
         Gst.init (ref args);
 
         // Initializing GStreamer-Mpegts
-        GstMpegTs.initialize ();
+        GstMpegts.initialize ();
 
         configure_logging ();
 

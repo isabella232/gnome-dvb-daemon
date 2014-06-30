@@ -20,7 +20,7 @@
 using GLib;
 using Gee;
 using DVB.Logging;
-using GstMpegTs;
+using GstMpegts;
 
 namespace DVB {
 
@@ -319,7 +319,7 @@ namespace DVB {
                                 out event_class.description);
                                 break;
                             case DVBDescriptorType.EXTENDED_EVENT:
-                                var ex_desc = ExtendedEventDescriptor();
+                                ExtendedEventDescriptor ex_desc;
 
                                 if (!desc.parse_dvb_extended_event (out ex_desc))
                                     log.debug ("Failed parse extended Event");
@@ -332,7 +332,7 @@ namespace DVB {
 
                                 break;
                             case DVBDescriptorType.COMPONENT:
-                                var comp = ComponentDescriptor();
+                                ComponentDescriptor comp;
 
                                 desc.parse_dvb_component(out comp);
 

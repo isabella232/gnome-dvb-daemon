@@ -22,7 +22,7 @@ using DVB.Logging;
 
 namespace DVB {
 
-    public class MediaFactory : Gst.RTSPMediaFactory {
+    public class MediaFactory : Gst.RTSPServer.MediaFactory {
 
         private static Logger log = LogManager.getLogManager().getDefaultLogger();
         private DeviceGroup group;
@@ -43,7 +43,7 @@ namespace DVB {
             this.player = null;
         }
 
-        public override Gst.Element? create_element (Gst.RTSP.Url url) {
+        public override Gst.Element create_element (Gst.RTSP.Url url) {
             uint sidnr = 0;
             uint grpnr = 0;
             log.debug ("create element");
@@ -92,12 +92,12 @@ namespace DVB {
             return this.player.get_sink_bin (sidnr, this.payloader);
         }
 
-        protected override Gst.Element? create_pipeline (Gst.RTSPMedia media) {
+        public override Gst.Pipeline create_pipeline (Gst.RTSPServer.Media media) {
             log.debug ("create pipeline");
-            Gst.Element pipeline = this.player.get_pipeline ();
+            Gst.Pipeline pipeline = (Gst.Pipeline)this.player.get_pipeline ();
 
             media.unprepared.connect (this.on_media_unprepared);
-            media.take_pipeline ((Gst.Pipeline)pipeline);
+            media.take_pipeline (pipeline);
 
             return pipeline;
         }

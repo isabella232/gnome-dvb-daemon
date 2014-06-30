@@ -18,7 +18,7 @@
  */
 
 using GLib;
-using GstMpegTs;
+using GstMpegts;
 using DVB.Logging;
 
 namespace DVB {

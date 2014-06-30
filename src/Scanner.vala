@@ -20,7 +20,7 @@
 using GLib;
 using Gee;
 using DVB.Logging;
-using GstMpegTs;
+using GstMpegts;
 
 namespace DVB {
 

@@ -21,7 +21,7 @@ using GLib;
 using Gee;
 using DVB.database;
 using DVB.Logging;
-using GstMpegTs;
+using GstMpegts;
 
 namespace DVB {
 

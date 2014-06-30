@@ -18,7 +18,7 @@
  */
 
 using GLib;
-using GstMpegTs;
+using GstMpegts;
 
 namespace DVB {
 

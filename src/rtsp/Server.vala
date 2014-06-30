@@ -23,7 +23,7 @@ namespace DVB.RTSPServer {
 
     private static Logger log;
 
-    private static Gst.RTSPServer server;
+    private static Gst.RTSPServer.Server server;
     private static uint timeout_id;
 
     public static string get_address () {
@@ -50,7 +50,7 @@ namespace DVB.RTSPServer {
     public async static void start () {
         log = LogManager.getLogManager().getDefaultLogger();
         log.info ("Starting RTSP server");
-        server = new Gst.RTSPServer ();
+        server = new Gst.RTSPServer.Server ();
         server.set_address (get_address ());
         server.attach (null);
         timeout_id = GLib.Timeout.add_seconds (2, (GLib.SourceFunc)timeout);
@@ -69,7 +69,7 @@ namespace DVB.RTSPServer {
     }
 
     private static bool timeout () {
-        Gst.RTSPSessionPool pool = server.get_session_pool ();
+        Gst.RTSPServer.SessionPool pool = server.get_session_pool ();
         pool.cleanup ();
         return true;
     }
@@ -81,13 +81,13 @@ namespace DVB.RTSPServer {
             this.url = url_str;
         }
 
-        public Gst.RTSPFilterResult session_filter_func (Gst.RTSPSessionPool pool,
-                Gst.RTSPSession session) {
+        public Gst.RTSPServer.FilterResult session_filter_func (Gst.RTSPServer.SessionPool pool,
+                Gst.RTSPServer.Session session) {
             int matched;
             if (session.get_media (this.url, out matched) != null) {
-                return Gst.RTSPFilterResult.REMOVE;
+                return Gst.RTSPServer.FilterResult.REMOVE;
             } else {
-                return Gst.RTSPFilterResult.KEEP;
+                return Gst.RTSPServer.FilterResult.KEEP;
             }
         }
     }

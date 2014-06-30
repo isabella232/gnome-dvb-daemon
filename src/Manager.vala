@@ -476,7 +476,7 @@ namespace DVB {
                 this.restore_timers (device_group);
             }
             log.debug ("add media factory");
-            Gst.RTSPMountPoints points = DVB.RTSPServer.server.get_mount_points ();
+            Gst.RTSPServer.MountPoints points = DVB.RTSPServer.server.get_mount_points ();
             foreach (Channel channel in device_group.Channels) {
                 MediaFactory factory = new MediaFactory ();
                 points.add_factory ("/%u/%u".printf (device_group.Id, channel.Sid), factory);
@@ -572,7 +572,7 @@ namespace DVB {
                     }
 
                     if ( lastest ) {
-                        Gst.RTSPMountPoints points = DVB.RTSPServer.server.get_mount_points ();
+                        Gst.RTSPServer.MountPoints points = DVB.RTSPServer.server.get_mount_points ();
                         foreach (Channel channel in devgroup.Channels)
                             points.remove_factory ("/%u/%u".printf (devgroup.Id, channel.Sid));
 

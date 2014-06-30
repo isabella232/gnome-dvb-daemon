@@ -19,7 +19,7 @@
 
 using GLib;
 using DVB.Logging;
-using GstMpegTs;
+using GstMpegts;
 using DVB;
 
 namespace DVB.io {

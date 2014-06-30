@@ -20,7 +20,7 @@ using GLib;
 using Gee;
 using Gst;
 using DVB.Logging;
-using GstMpegTs;
+using GstMpegts;
 
 namespace DVB {
 
@@ -274,7 +274,7 @@ namespace DVB {
                     foreach (Gst.Element sink_bin in celems.sinks) {
                         Gst.Iterator it = ((Gst.Bin)sink_bin).iterate_elements ();
                         GLib.Value elem;
-                        if (it.find_custom ((GLib.CompareFunc)find_element, out elem, sink)) {
+                        if (it.find_custom (find_element, out elem, sink)) {
                             result = sink_bin;
                             break;
                         }
