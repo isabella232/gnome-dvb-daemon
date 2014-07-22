@@ -68,9 +68,11 @@ namespace DVB {
             string name = this.Name;
 
             string tmp = parent.get_property ("ID_MODEL_FROM_DATABASE");
-            tmp += ": " + name;
-            this.Name = tmp;
-            log.debug("Adding Device: %s", tmp);
+            if (tmp == null)
+                this.Name = name;
+            else
+                this.Name = tmp + ": " + name;
+            log.debug("Adding Device: %s", this.Name);
             this.DevFile = dev_file;
 
             /* Generating UID */
