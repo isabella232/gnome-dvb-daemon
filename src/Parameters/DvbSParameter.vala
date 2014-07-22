@@ -109,7 +109,7 @@ namespace DVB {
         public override void prepare (Gst.Element source) {
             log.debug ("Prepare DVB-S Scanning Parameter");
             source.set ("frequency", this.Frequency);
-            source.set ("sombol-rate", this.SymbolRate);
+            source.set ("symbol-rate", this.SymbolRate);
             switch (this.Polarization) {
                 case SatellitePolarizationType.LINEAR_HORIZONTAL:
                     source.set ("polarity", "H");
