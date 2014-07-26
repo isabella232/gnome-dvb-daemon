@@ -83,6 +83,8 @@ namespace DVB {
                 bool with_epg_scanner=true) {
             Object (Id: id, Channels: new ChannelList (channels_conf), RecordingsDirectory: recordings_dir, Type: type);
 
+	    Channels.GroupId = this.Id;
+
             if (with_epg_scanner) {
                 this._epgscanner = new EPGScanner (this);
             } else {
