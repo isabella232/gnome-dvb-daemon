@@ -72,7 +72,7 @@ namespace DVB {
         private Gee.HashSet<Parameter> scanned_scanning_params;
 
         private static const string BASE_PIDS = "16:17"; // NIT, SDT
-        private static const string PIPELINE_TEMPLATE = "dvbsrc name=dvbsrc adapter=%u frontend=%u pids=%s stats-reporting-interval=100 ! tsparse ! fakesink silent=true";
+        private static const string PIPELINE_TEMPLATE = "dvbsrc name=dvbsrc adapter=%u frontend=%u stats-reporting-interval=100 ! tsparse ! fakesink silent=true";
 
         // Contains SIDs
         private ArrayList<uint> new_channels;
@@ -122,7 +122,7 @@ namespace DVB {
             try {
                 this.pipeline = Gst.parse_launch(
                     PIPELINE_TEMPLATE.printf (this.Device.Adapter,
-                        this.Device.Frontend, BASE_PIDS));
+                        this.Device.Frontend));
             } catch (Error e) {
                 log.error ("Could not create pipeline: %s", e.message);
                 return;
@@ -398,10 +398,10 @@ namespace DVB {
 
             this.current_scanning_param.prepare (dvbsrc);
 
-            dvbsrc.set ("pids", BASE_PIDS);
+//            dvbsrc.set ("pids", BASE_PIDS);
 
             this.check_for_lock_source =
-                new TimeoutSource.seconds (10);
+                new TimeoutSource.seconds (20);
             this.check_for_lock_source.set_callback (this.check_for_lock);
             this.check_for_lock_source.attach (this.context);
 
@@ -535,8 +535,8 @@ namespace DVB {
 
             log.debug ("Setting %d pids: %s", pid_set.size, new_pids.str);
             // We want to parse the pmt as well
-            Gst.Element dvbsrc = ((Gst.Bin)this.pipeline).get_by_name ("dvbsrc");
-            dvbsrc.set ("pids", new_pids.str);
+//            Gst.Element dvbsrc = ((Gst.Bin)this.pipeline).get_by_name ("dvbsrc");
+//            dvbsrc.set ("pids", new_pids.str);
 
             this.pat_arrived = true;
         }
